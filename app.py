@@ -8,9 +8,9 @@ import time
 # === STEP 1: Konfiguration ===
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
-MODEL_A = "gpt-3.5-turbo-0613"
-MODEL_B = "gpt-3.5-turbo-0613"
-MODEL_REF = "gpt-3.5-turbo-0613"
+MODEL_A = "gpt-3.5-turbo"
+MODEL_B = "gpt-3.5-turbo"
+MODEL_REF = "gpt-3.5-turbo"
 
 MAX_ROUNDS = 4
 
