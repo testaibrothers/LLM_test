@@ -1,19 +1,31 @@
 # Projekt: LLM-Debate Plattform (MVP)
 # Ziel: Zwei LLMs diskutieren einen Use Case, liefern finalen Konsens mit Zusammenfassung
 
-from openai import OpenAI, RateLimitError
 import streamlit as st
+import requests
 import time
+import os
 
 # === STEP 1: Konfiguration ===
-client = OpenAI(api_key=st.secrets["openai_api_key"])
+st.title("🤖 KI-Debattenplattform")
+st.subheader("Zwei LLMs diskutieren für dich – bis zur Entscheidung")
 
-MODEL_A = "gpt-3.5-turbo"
-MODEL_B = "gpt-3.5-turbo"
-MODEL_REF = "gpt-3.5-turbo"
+provider = st.radio("Modell-Anbieter wählen:", ["Groq (Mixtral)", "OpenAI (gpt-3.5)"])
+
+USE_GROQ = provider.startswith("Groq")
+
+if USE_GROQ:
+    API_KEY = st.secrets["groq_api_key"]
+    API_URL = "https://api.groq.com/openai/v1/chat/completions"
+    MODEL_A = MODEL_B = MODEL_REF = "mixtral-8x7b"
+else:
+    import openai
+    API_KEY = st.secrets["openai_api_key"]
+    API_URL = "https://api.openai.com/v1/chat/completions"
+    MODEL_A = MODEL_B = MODEL_REF = "gpt-3.5-turbo"
 
 MAX_ROUNDS = 4
-WAIT_BETWEEN_CALLS = 25  # Sekunden pro API-Aufruf bei RateLimit
+WAIT_BETWEEN_CALLS = 25
 
 USE_CASE_PROMPTS = {
     "SaaS Validator": "Bewerte die Idee kritisch unter folgenden Aspekten: Markt, Monetarisierung, Skalierung, Risiken.",
@@ -23,25 +35,34 @@ USE_CASE_PROMPTS = {
 }
 
 # === STEP 2: Streamlit UI ===
-st.title("🤖 KI-Debattenplattform")
-st.subheader("Zwei LLMs diskutieren für dich – bis zur Entscheidung")
-
 use_case = st.selectbox("Use Case auswählen:", list(USE_CASE_PROMPTS.keys()))
 user_question = st.text_area("Deine Fragestellung:")
 start_button = st.button("Diskussion starten")
 
-# === STEP 3: Agentenfunktion mit hartem Delay ===
+# === STEP 3: Agentenfunktion ===
 def query_agent(model, history):
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": model,
+        "messages": history,
+        "temperature": 0.7
+    }
     while True:
         try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=history,
-                temperature=0.7
-            )
-            return response.choices[0].message.content
-        except RateLimitError:
-            st.warning(f"Rate Limit erreicht bei {model}. Warte {WAIT_BETWEEN_CALLS} Sekunden…")
+            response = requests.post(API_URL, headers=headers, json=payload)
+            if response.status_code == 200:
+                return response.json()["choices"][0]["message"]["content"]
+            elif response.status_code == 429:
+                st.warning(f"Rate Limit bei {model}. Warte {WAIT_BETWEEN_CALLS} Sekunden…")
+                time.sleep(WAIT_BETWEEN_CALLS)
+            else:
+                st.error(f"Fehler von API ({response.status_code}): {response.text}")
+                return "[Fehler bei API-Zugriff]"
+        except Exception as e:
+            st.error(f"Verbindungsfehler: {str(e)}")
             time.sleep(WAIT_BETWEEN_CALLS)
 
 # === STEP 4: Diskussion starten ===
