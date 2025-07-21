@@ -54,6 +54,9 @@ def debate_call(selected_provider, api_key, api_url, model, prompt):
 
 # Diskussion starten
 if start_button and user_question:
+    progress = st.progress(0)
+    st.info("Debatte läuft...")
+    progress.progress(5)
     # Prompt-Erstellung basierend auf Use Case
     if use_case == "Allgemeine Diskussion":
         prompt = f"""Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'\nAgent A (optimistisch)\nAgent B (pessimistisch)\nAntworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"""
@@ -80,6 +83,16 @@ if start_button and user_question:
                 raw = "\n".join(lines[1:-1])
             data = json.loads(raw)
             st.markdown(f"**Provider:** {used}")
+            progress.progress(20)
+            # API-Kosten schätzen (nur OpenAI)
+            try:
+                # Roh-Antwort befindet sich in raw
+                tokens = len(raw.split())
+                est_cost = tokens/1000 * cost_rate
+                st.markdown(f"**Geschätzte Kosten:** ${est_cost:.4f}")
+            except Exception:
+                pass
+            progress.progress(40)
             # Legacy optimistic/pessimistic JSON
             if 'optimistic' in data and 'pessimistic' in data:
                 st.markdown("### 🤝 Optimistische Perspektive")
@@ -103,7 +116,7 @@ if start_button and user_question:
             else:
                 # Fallback: zeige Roh-Antwort
                 st.warning("Unbekanntes JSON-Format, hier Roh-Antwort:")
-                st.text_area("Roh-Antwort", content, height=200)
+                st.text_area("Roh-Antwort", content, height=200)            progress.progress(100)
         except Exception as e:
             st.error("Fehler beim Verarbeiten der Antwort: " + str(e))
     else:
