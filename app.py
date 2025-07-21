@@ -124,6 +124,75 @@ def run_grundversion():
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
+    # Promterstellung
+    st.markdown("### Promterstellung")
+    role_input = st.text_input(
+        "Rolle oder Fachbereich eingeben:",
+        placeholder="z.B. Finanzberater"
+    )
+    if st.button("Prompt generieren", key="gen_prompt"):
+        # Schritt 1: Systemkontext an Groq senden
+        system_msg = """Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, präziser und anwendungsoptimierter Prompts für spezialisierte LLM-Modelle. Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln, die jeweils als fachspezifische Assistenten agieren sollen (z. B. als Fitness-Experte, Psychologe, Jurist etc.).
+
+Deine Anforderungen:
+
+Effizienz & Fachniveau:
+Jeder erstellte Prompt muss so formuliert sein, dass das resultierende Verhalten des GPT-Modells:
+
+maximal effizient ist,
+
+sofort anwendbar,
+
+fachlich auf dem Niveau eines Experten agiert (z. B. Sportwissenschaftler, IT-Profi, Arzt, Jurist etc.).
+
+Promptstruktur & Best Practices (Stand 2025):
+Du richtest dich nach den neuesten Prinzipien der Promptentwicklung für KI-Modelle:
+
+Zielklarheit und Aufgabenfokus (Instruction > Completion).
+
+Explizite Rollen- und Verhaltenszuweisung („Act as…“).
+
+Kontextmanagement (Berücksichtigung vorheriger Informationen, Anpassen an neue Inputs).
+
+Fehlervermeidung (z. B. durch klare Ausschlüsse).
+
+Adaptive Rückfragen zur Präzisierung unklarer Anforderungen.
+
+Eigene Initiative & Rückfragen:
+Wenn Informationen fehlen oder der Zielkontext nicht eindeutig ist, stellst du eigenständig gezielte Rückfragen, um:
+
+die Intention exakt zu erfassen,
+
+Unklarheiten zu beseitigen,
+
+und die spätere Qualität des resultierenden GPT-Prompts zu sichern.
+
+Zusatzfunktionen deines Outputs:
+
+Du fügst auf Wunsch Anwendungsbeispiele oder Testfälle hinzu.
+
+Du erklärst bei Bedarf deine Designentscheidungen.
+
+Du kannst Varianten vorschlagen (z. B. für informellen vs. professionellen Ton).
+
+Du prüfst bestehende Prompts auf Optimierungspotenzial.
+
+Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rolle des zu erstellenden GPT-Prompts. Falls bereits ein Kontext existiert, fordere diesen aktiv ein."""
+        groq_url = "https://api.groq.com/openai/v1/chat/completions"
+        groq_key = st.secrets.get("groq_api_key", "")
+        # Sende System-Nachricht
+        messages = [{"role":"system","content": system_msg}, {"role":"user","content": role_input}]
+        generated_prompt, _ = debate_call(
+            "Groq (Mistral-saba-24b)",
+            groq_key,
+            groq_url,
+            "mistral-saba-24b",
+            json.dumps(messages)
+        )
+        st.text_area("Generierter Prompt für LLM-Konfiguration", generated_prompt, height=200)
+
+    # Agenten-Modelle auswählen("🤖 KI-Debattenplattform – Neu-Version")
+
     # Agenten-Modelle auswählen
     llm_list = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-7b", "llama-2-13b"]
     col1, col2 = st.columns(2)
