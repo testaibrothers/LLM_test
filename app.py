@@ -113,6 +113,9 @@ if start_button and user_question:
             else:
                 st.error("Antwort konnte nicht geparst werden: " + content)
         except Exception as e:
-            st.error("Fehler beim Verarbeiten der Antwort: " + str(e))
+            # Fallback: zeige die rohe Antwort, falls JSON-Parsing fehlschlägt
+            st.warning("Antwort konnte nicht im JSON-Format geparst werden. Hier die Roh-Antwort:")
+            st.text_area("Roh-Antwort", content, height=200)
     else:
+        st.error("Keine Antwort erhalten.")
         st.error("Keine Antwort erhalten.")
