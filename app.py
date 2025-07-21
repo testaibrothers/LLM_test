@@ -11,7 +11,7 @@ st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
 st.subheader("Debattiere per JSON mit OpenAI oder Groq – wechsle bei Quotengrenze automatisch zu Groq")
 
 provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
-use_case = st.selectbox("Use Case auswählen:", ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"])
+use_case = st.selectbox("Use Case auswählen (Allgemeine Diskussion für freie Fragen):", ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"], index=0)
 user_question = st.text_area("Deine Fragestellung:")
 start_button = st.button("Debatte starten")
 
