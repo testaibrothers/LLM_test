@@ -10,7 +10,7 @@ import os
 st.title("🤖 KI-Debattenplattform")
 st.subheader("Zwei LLMs diskutieren für dich – bis zur Entscheidung")
 
-provider = st.radio("Modell-Anbieter wählen:", ["Groq (Mixtral)", "OpenAI (gpt-3.5)"])
+provider = st.radio("Modell-Anbieter wählen:", ["Groq (Mixtral-8x7b-32768)", "OpenAI (gpt-3.5)"])
 use_case = st.selectbox("Use Case auswählen:", [
     "SaaS Validator",
     "SWOT Analyse",
@@ -63,7 +63,7 @@ if start_button and user_question:
     if USE_GROQ:
         api_key = st.secrets["groq_api_key"]
         api_url = "https://api.groq.com/openai/v1/chat/completions"
-        model_a = model_b = model_ref = "mixtral-8x7b"
+        model_a = model_b = model_ref = "mixtral-8x7b-32768"
     else:
         import openai
         api_key = st.secrets["openai_api_key"]
