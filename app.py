@@ -52,7 +52,7 @@ if start_button and user_question:
     prompt = (
         f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
         "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-        f"Thema: {user_question}\nAntworte JSON mit: optimistic, pessimistic, recommendation"
+        f"Thema: {user_question}\nAntworte **ausschließlich** mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne Fließtext, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""
     )
     # Provider konfigurieren
     if provider.startswith("OpenAI"):
