@@ -42,9 +42,18 @@ with col2:
     b_style = st.selectbox("Analysestil B:", params["Analysestil"], index=1)
 
 # Nutzerinput
-custom_system = st.text_area("Systemrolle (optional) für beide Agenten automatisch vor der Debatte einfügen:")
+# Zeige Systemrolle nur wenn beide Anbieter gleich sind
+if provider.startswith("OpenAI") or provider.startswith("Groq"):
+    custom_system = st.text_area(
+        "Gemeinsamer System-Prompt für beide Agenten (optional):",
+        placeholder="z.B. Du bist ein neutraler Berater...",
+        help="Je genauer desto besser"
+    )
+else:
+    custom_system = None
+
 user_question = st.text_area("Deine Fragestellung:")
-start_button = st.button("Debatte starten")("Debatte starten")
+start_button = st.button("Debatte starten")
 
 # === Funktion für API-Aufruf mit Fallback ===
 def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
