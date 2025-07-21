@@ -137,15 +137,19 @@ def run_neu():
     mode = st.radio("Konfigurationstyp:", ["Prompt-Konfiguration", "Charakter-Konfiguration"], key="mode_neu")
 
     # Prompt-Konfiguration
-    if mode == "Prompt-Konfiguration":
-        # Gemeinsames Prompt-Feld
-        shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_same")
-        # Unterschiedliche Prompts
+        if mode == "Prompt-Konfiguration":
+        # Checkbox für Different Prompts
         diff = st.checkbox("Different Prompts für A und B", key="diff_neu")
         if diff:
+            # Separate Prompt-Felder für Agent A und B
             prompt_a = st.text_area("Prompt für Agent A", key="pA_neu")
             prompt_b = st.text_area("Prompt für Agent B", key="pB_neu")
         else:
+            # Gemeinsames Prompt-Feld nur, wenn nicht diff
+            shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_same")
+            prompt_a = shared
+            prompt_b = shared
+    else:
             prompt_a = shared
             prompt_b = shared
     else:
