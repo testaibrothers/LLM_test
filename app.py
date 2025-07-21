@@ -136,24 +136,17 @@ def run_neu():
     st.markdown("### Agent Konfiguration")
     mode = st.radio("Konfigurationstyp:", ["Prompt-Konfiguration", "Charakter-Konfiguration"], key="mode_neu")
 
-    # Prompt-Konfiguration
-        if mode == "Prompt-Konfiguration":
-        # Checkbox für Different Prompts
+    # Prompt-Konfiguration oder Charakter-Konfiguration
+    if mode == "Prompt-Konfiguration":
         diff = st.checkbox("Different Prompts für A und B", key="diff_neu")
         if diff:
-            # Separate Prompt-Felder für Agent A und B
             prompt_a = st.text_area("Prompt für Agent A", key="pA_neu")
             prompt_b = st.text_area("Prompt für Agent B", key="pB_neu")
         else:
-            # Gemeinsames Prompt-Feld nur, wenn nicht diff
             shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_same")
             prompt_a = shared
             prompt_b = shared
     else:
-            prompt_a = shared
-            prompt_b = shared
-    else:
-        # Charakter-Konfiguration
         opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
         with c1:
@@ -172,6 +165,11 @@ def run_neu():
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
 
 # === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
