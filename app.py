@@ -7,9 +7,10 @@ import streamlit as st
 # === STEP 1: Konfiguration ===
 openai.api_key = st.secrets["openai_api_key"]
 
-MODEL_A = "gpt-4"
-MODEL_B = "gpt-3.5-turbo"
-MODEL_REF = "gpt-4"
+MODEL_A = "gpt-4o"
+MODEL_B = "gpt-3.5-turbo-0613"
+MODEL_REF = "gpt-4o"
+
 
 MAX_ROUNDS = 4
 
