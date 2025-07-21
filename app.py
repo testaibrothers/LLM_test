@@ -161,24 +161,24 @@ def run_neu():
     # Diskussion starten
     start_neu = st.button("Diskussion starten", key="start_neu")
     question_neu = st.text_area("Deine Frage:", key="q_neu")
-    if start_neu and question_neu:
+        if start_neu and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
-
-# === Version Switch ===
-version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
+        # Debatte ausführen: Prompt als System-Message einbinden
+        # Hier wird das eingegebene Prompt tatsächlich an die LLM übergeben
+        api_url = "https://api.openai.com/v1/chat/completions"
+        api_key = st.secrets.get("openai_api_key", "")
+        # Agent A
+        messages_a = [{"role":"system","content":prompt_a}] if prompt_a else []
+        messages_a += [{"role":"user","content":question_neu}]
+        resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, json.dumps(messages_a))
+        # Agent B
+        messages_b = [{"role":"system","content":prompt_b}] if prompt_b else []
+        messages_b += [{"role":"user","content":question_neu}]
+        resp_b, _ = debate_call("OpenAI", api_key, api_url, agent_b_model, json.dumps(messages_b))
+        # Ergebnisse anzeigen
+        st.markdown("### 🗣️ Agent A Antwort")
+        st.write(resp_a)
+        st.markdown("### 🗣️ Agent B Antwort")
+        st.write(resp_b)
