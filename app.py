@@ -8,7 +8,7 @@ import json
 
 # === UI + Konfiguration ===
 st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
-st.subheader("Debattiere per JSON mit OpenAI oder Groq – wechsle bei Quotengrenze automatisch zu Groq")
+
 
 # Anbieter & Use Case
 provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
