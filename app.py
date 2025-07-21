@@ -28,6 +28,7 @@ def debate_call(selected_provider, api_key, api_url, model, prompt):
     payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
     resp = requests.post(api_url, headers=headers, json=payload)
     code = resp.status_code
+    # Erfolgreicher Aufruf
     if code == 200:
         return resp.json()["choices"][0]["message"]["content"], selected_provider
     # Quota exceeded -> fallback zu Groq
@@ -55,16 +56,9 @@ def debate_call(selected_provider, api_key, api_url, model, prompt):
 if start_button and user_question:
     # Prompt-Erstellung basierend auf Use Case
     if use_case == "Allgemeine Diskussion":
-        prompt = f"""Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'
-Agent A (optimistisch)
-Agent B (pessimistisch)
-Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"""
+        prompt = f"""Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'\nAgent A (optimistisch)\nAgent B (pessimistisch)\nAntworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"""
     else:
-        prompt = f"""Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':
-Thema: '{user_question}'
-Agent A (optimistisch) analysiert Chancen.
-Agent B (pessimistisch) analysiert Risiken.
-Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""""
+        prompt = f"""Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\nThema: '{user_question}'\nAgent A (optimistisch) analysiert Chancen.\nAgent B (pessimistisch) analysiert Risiken.\nAntworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""""
     # Provider konfigurieren
     if provider.startswith("OpenAI"):
         api_url = "https://api.openai.com/v1/chat/completions"
@@ -79,17 +73,12 @@ Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne
     content, used = debate_call(provider, api_key, api_url, model, prompt)
     if content:
         try:
-            # Remove Markdown fences if present
-raw = content.strip()
-if raw.startswith("```") and raw.endswith("```"):
-    # strip leading/trailing backticks and optional language marker
-    lines = raw.splitlines()
-    # remove first and last lines
-    lines = lines[1:-1]
-    raw = "
-".join(lines)
-# Now parse JSON
-data = json.loads(raw)
+            # Vor Parsing: Entferne Markdown-Fences
+            raw = content.strip()
+            if raw.startswith("```") and raw.endswith("```"):
+                lines = raw.splitlines()
+                raw = "\n".join(lines[1:-1])
+            data = json.loads(raw)
             st.markdown(f"**Provider:** {used}")
             # Legacy optimistic/pessimistic JSON
             if 'optimistic' in data and 'pessimistic' in data:
@@ -100,7 +89,7 @@ data = json.loads(raw)
                 st.markdown("### ✅ Empfehlung")
                 st.write(data['recommendation'])
             # Key-based Agent A/B Format
-            elif any(k.startswith('Agent A') or k.startswith('Agent B') for k in data.keys()):
+            elif any(key.startswith('Agent A') or key.startswith('Agent B') for key in data.keys()):
                 st.markdown("### 🗣️ Debatte")
                 for key, val in data.items():
                     if key.startswith('Agent A') or key.startswith('Agent B'):
