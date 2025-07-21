@@ -9,9 +9,9 @@ from openai import RateLimitError
 # === STEP 1: Konfiguration ===
 openai.api_key = st.secrets["openai_api_key"]
 
-MODEL_A = "gpt-4o"
-MODEL_B = "gpt-3.5-turbo-0613"
-MODEL_REF = "gpt-4o"
+MODEL_A = "gpt-3.5-turbo-0613"
+MODEL_B = "gpt-3.5-turbo-1106"
+MODEL_REF = "gpt-3.5-turbo-0613"
 
 MAX_ROUNDS = 4
 
@@ -51,12 +51,12 @@ def query_agent(model, history, retries=3, wait=10):
 # === STEP 4: Diskussion starten ===
 if start_button and user_question:
     history_a = [
-        {"role": "system", "content": f"Du bist ein KI-Agent, der die Aufgabe hat, folgende Fragestellung im Use Case '{use_case}' zu analysieren. {USE_CASE_PROMPTS[use_case]}"},
+        {"role": "system", "content": f"Du bist ein optimistisch eingestellter KI-Agent, der die Aufgabe hat, folgende Fragestellung im Use Case '{use_case}' wohlwollend, lösungsorientiert und chancenfokussiert zu analysieren. {USE_CASE_PROMPTS[use_case]}"},
         {"role": "user", "content": user_question}
     ]
 
     history_b = [
-        {"role": "system", "content": f"Du bist ein KI-Agent mit kritischem Blick. Reagiere auf die Aussagen des ersten Agenten zum Use Case '{use_case}'. {USE_CASE_PROMPTS[use_case]}"},
+        {"role": "system", "content": f"Du bist ein eher pessimistisch eingestellter KI-Agent mit kritischem Blick. Reagiere mit Skepsis auf die Aussagen des ersten Agenten und fokussiere dich auf Risiken, Schwächen und potenzielle Fehlschläge im Use Case '{use_case}'. {USE_CASE_PROMPTS[use_case]}"},
         {"role": "user", "content": user_question}
     ]
 
