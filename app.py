@@ -10,7 +10,7 @@ from openai import RateLimitError
 openai.api_key = st.secrets["openai_api_key"]
 
 MODEL_A = "gpt-3.5-turbo-0613"
-MODEL_B = "gpt-3.5-turbo-1106"
+MODEL_B = "gpt-3.5-turbo-0613"
 MODEL_REF = "gpt-3.5-turbo-0613"
 
 MAX_ROUNDS = 4
