@@ -1,81 +1,133 @@
 # Projekt: LLM-Debate Plattform (MVP)
-# Ziel: Auswahl von zwei LLMs für Diskussion mit vollwertiger Debatten-Logik in Grundversion und Prototyp-Neu-Version
+# Mit Version-Switch zwischen Grundversion (vollständige Debatten-Engine) und Neu (Prototyp)
 
 import streamlit as st
 import requests
 import time
 import json
 
-# --- Funktion: Grundversion mit vollständiger Debatten-Engine ---
+# === Funktion für Single-Call Debatte mit Fallback für OpenAI-Quota ===
+def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
+    while True:
+        resp = requests.post(api_url, headers=headers, json=payload)
+        code = resp.status_code
+        if code == 200:
+            return resp.json()["choices"][0]["message"]["content"], selected_provider
+        if code == 429 and selected_provider.startswith("OpenAI"):
+            err = resp.json().get("error", {})
+            if err.get("code") == "insufficient_quota":
+                st.warning("OpenAI-Quota erschöpft, wechsle automatisch zu Groq...")
+                return debate_call(
+                    "Groq (Mistral-saba-24b)",
+                    st.secrets.get("groq_api_key", ""),
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    "mistral-saba-24b",
+                    prompt,
+                    timeout
+                )
+        if code == 429:
+            st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
+            time.sleep(timeout)
+            continue
+        st.error(f"API-Fehler {code}: {resp.text}")
+        return None, selected_provider
+
+# --- Grundversion: Vollständige Debatten-Engine ---
 def run_grundversion():
-    st.title("🤖 KI-Debattenplattform – Grundversion")
-    # Agenten-Modelle (funktional für OpenAI und Groq fest kodiert)
-    llm_list = ["gpt-3.5-turbo", "claude-3"]  # Nur unterstützte Modelle in Grundversion
-    col1, col2 = st.columns(2)
-    with col1:
-        agent_a_model = st.selectbox("Agent A LLM:", llm_list, index=0, key="grund_a")
-    with col2:
-        agent_b_model = st.selectbox("Agent B LLM:", llm_list, index=1, key="grund_b")
-    # Frage
-    action = st.button("Diskussion starten", key="grund_action")
-    user_question = st.text_area("Deine Fragestellung:", key="grund_q")
+    # UI + Konfiguration
+    st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
+    st.subheader("Debattiere per JSON mit OpenAI oder Groq – wechsle bei Quotengrenze automatisch zu Groq")
 
-    if action and user_question:
-        # Debatten-Logik
-        SYSTEM_A = {"gpt-3.5-turbo": "Du bist Agent A – optimistischer Debattierer.",
-                    "claude-3": "Du bist Agent A – optimistischer Debattierer."}[agent_a_model]
-        SYSTEM_B = {"gpt-3.5-turbo": "Du bist Agent B – kritischer Skeptiker.",
-                    "claude-3": "Du bist Agent B – kritischer Skeptiker."}[agent_b_model]
-        history = []
-        MAX_ROUNDS = 6
-        threshold = 0.8
-        # Embedding-Funktion placeholder
-        def similarity(a, b):
-            # Simple token overlap heuristic
-            sa, sb = set(a.split()), set(b.split())
-            return len(sa & sb) / max(len(sa), len(sb)) if sa and sb else 0
+    provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
+    use_case = st.selectbox(
+        "Use Case auswählen:",
+        ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
+        index=0
+    )
+    user_question = st.text_area("Deine Fragestellung:")
+    start_button = st.button("Debatte starten")
 
-        for i in range(MAX_ROUNDS):
-            # Agent A Anfrage
-            msg_a = requests.post(
-                f"https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {st.secrets['openai_api_key']}", "Content-Type": "application/json"},
-                json={"model": agent_a_model,
-                      "messages": [{"role":"system","content":SYSTEM_A}] + history + [{"role":"user","content":user_question}],
-                      "temperature":0.7}
-            ).json()["choices"][0]["message"]["content"]
-            history.append({"role":"assistant","content": msg_a})
+    if start_button and user_question:
+        progress = st.progress(0)
+        progress.progress(5)
+        st.info("Debatte läuft...")
 
-            # Agent B Anfrage
-            msg_b = requests.post(
-                f"https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {st.secrets['openai_api_key']}", "Content-Type": "application/json"},
-                json={"model": agent_b_model,
-                      "messages": [{"role":"system","content":SYSTEM_B}] + history + [{"role":"user","content":user_question}],
-                      "temperature":0.7}
-            ).json()["choices"][0]["message"]["content"]
-            history.append({"role":"assistant","content": msg_b})
-
-            # Abbruch bei Einigung
-            if similarity(msg_a, msg_b) >= threshold:
-                final = msg_a
-                break
+        # Prompt-Erstellung
+        if use_case == "Allgemeine Diskussion":
+            prompt = (
+                f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'\n"
+                "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
+                "Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"
+            )
         else:
-            # Referee
-            REF = "Du bist Referee – fasse zusammen und gib Empfehlung."
-            final = requests.post(
-                f"https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {st.secrets['openai_api_key']}", "Content-Type": "application/json"},
-                json={"model": agent_a_model,
-                      "messages": [{"role":"system","content":REF}] + history,
-                      "temperature":0.7}
-            ).json()["choices"][0]["message"]["content"]
+            prompt = (
+                f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
+                f"Thema: '{user_question}'\n"
+                "Agent A (optimistisch) analysiert Chancen.\n"
+                "Agent B (pessimistisch) analysiert Risiken.\n"
+                "Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""
+            )
+        progress.progress(20)
 
-        # Ausgabe
-        st.success("✅ Einigung gefunden")
-        st.markdown(final)
+        # Provider-Koordination
+        if provider.startswith("OpenAI"):
+            api_url = "https://api.openai.com/v1/chat/completions"
+            api_key = st.secrets.get("openai_api_key", "")
+            model = "gpt-3.5-turbo"
+            cost_rate = 0.002
+        else:
+            api_url = "https://api.groq.com/openai/v1/chat/completions"
+            api_key = st.secrets.get("groq_api_key", "")
+            model = "mistral-saba-24b"
+            cost_rate = 0.0
+        progress.progress(40)
 
-# --- Funktion: Prototyp Neu-Version (kosmetisch) ---
+        # API-Call & Timing
+        start_time = time.time()
+        content, used = debate_call(provider, api_key, api_url, model, prompt)
+        duration = time.time() - start_time
+        if not content:
+            st.error("Keine Antwort erhalten.")
+            progress.progress(100)
+            return
+
+        # Preprocessing
+        raw = content.strip()
+        if raw.startswith("```") and raw.endswith("```"):
+            raw = "\n".join(raw.splitlines()[1:-1])
+        try:
+            data = json.loads(raw)
+        except:
+            st.warning("Antwort konnte nicht im JSON-Format geparst werden. Hier die Roh-Antwort:")
+            st.text_area("Roh-Antwort", raw, height=200)
+            progress.progress(100)
+            return
+        progress.progress(60)
+
+        # Ausgabe & Statistiken
+        st.markdown(f"**Provider:** {used}")
+        if used.startswith("OpenAI"):
+            tokens = len(raw.split())
+            st.markdown(f"**Geschätzte Kosten:** ${(tokens/1000)*cost_rate:.4f}")
+        st.markdown(f"**Verarbeitungsdauer:** {duration:.2f} Sekunden")
+        progress.progress(80)
+
+        # Inhaltliche Ausgabe
+        if 'optimistic' in data and 'pessimistic' in data:
+            st.markdown("### 🤝 Optimistische Perspektive")
+            st.write(data['optimistic'])
+            st.markdown("### ⚠️ Pessimistische Perspektive")
+            st.write(data['pessimistic'])
+            st.markdown("### ✅ Empfehlung")
+            st.write(data['recommendation'])
+        else:
+            st.warning("Unbekanntes JSON-Format, hier Roh-Antwort:")
+            st.text_area("Roh-Antwort", raw, height=200)
+        progress.progress(100)
+
+# --- Neu-Version: kosmetischer Prototyp ---
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neueste Version")
     llm_list = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-7b", "llama-2-13b"]
@@ -90,7 +142,7 @@ def run_neu():
         st.markdown(f"Modelle: A={a}, B={b}")
         st.info("Neu-Version: Implementierung folgt")
 
-# === UI-Steuerung ===
+# === Version Dropdown & Steuerung ===
 version = st.selectbox("Version:", ["Grundversion", "Neu"], index=0)
 if version == "Grundversion":
     run_grundversion()
