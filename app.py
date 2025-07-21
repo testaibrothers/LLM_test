@@ -11,7 +11,7 @@ st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
 st.subheader("Debattiere per JSON mit OpenAI oder Groq – wechsle bei Quotengrenze automatisch zu Groq")
 
 provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
-use_case = st.selectbox("Use Case auswählen:", ["SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"])
+use_case = st.selectbox("Use Case auswählen:", ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"])
 user_question = st.text_area("Deine Fragestellung:")
 start_button = st.button("Debatte starten")
 
@@ -49,11 +49,20 @@ def debate_call(selected_provider, api_key, api_url, model, prompt):
 
 # Diskussion starten
 if start_button and user_question:
-    prompt = (
-        f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
-        "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-        f"Thema: {user_question}\nAntworte **ausschließlich** mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne Fließtext, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""
-    )
+    # Prompt-Erstellung abhängig vom Use Case
+    if use_case == "Allgemeine Diskussion":
+        prompt = (
+            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: {user_question}\n"
+            "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
+            "Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"
+        )
+    else:
+        prompt = (
+            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
+            "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
+            f"Thema: {user_question}\n"
+            "Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne Fließtext, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""
+        )
     # Provider konfigurieren
     if provider.startswith("OpenAI"):
         url = "https://api.openai.com/v1/chat/completions"
