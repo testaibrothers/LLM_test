@@ -30,8 +30,7 @@ start_button = st.button("Diskussion starten")
 
 # === STEP 3: Agentenfunktion ===
 def query_agent(model, history):
-    client = openai.OpenAI()
-    response = client.chat.completions.create(
+    response = openai.chat.completions.create(
         model=model,
         messages=history,
         temperature=0.7
