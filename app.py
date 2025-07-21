@@ -72,11 +72,23 @@ if start_button and user_question:
         try:
             data = json.loads(content)
             st.markdown(f"**Provider:** {used}")
-            st.markdown("### 🤝 Optimistische Perspektive")
-            st.write(data.get("optimistic", "-"))
-            st.markdown("### ⚠️ Pessimistische Perspektive")
-            st.write(data.get("pessimistic", "-"))
-            st.markdown("### ✅ Empfehlung")
-            st.write(data.get("recommendation", "-"))
+            # Check for 'debate' structure
+            if isinstance(data, dict) and 'debate' in data:
+                st.markdown("### 🗣️ Debatte")
+                for entry in data['debate']:
+                    speaker = entry.get('speaker', 'Agent')
+                    tone = entry.get('tone', '')
+                    statement = entry.get('statement', '')
+                    st.write(f"**{speaker}** ({tone}): {statement}")
+                st.markdown("### ✅ Empfehlung")
+                st.write(data.get('recommendation', '-'))
+            else:
+                # Fallback for optimistic/pessimistic JSON
+                st.markdown("### 🤝 Optimistische Perspektive")
+                st.write(data.get('optimistic', '-'))
+                st.markdown("### ⚠️ Pessimistische Perspektive")
+                st.write(data.get('pessimistic', '-'))
+                st.markdown("### ✅ Empfehlung")
+                st.write(data.get('recommendation', '-'))
         except Exception:
             st.error("Antwort konnte nicht geparst werden: " + content)
