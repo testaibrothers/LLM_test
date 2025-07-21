@@ -127,20 +127,50 @@ def run_grundversion():
             st.text_area("Roh-Antwort", raw, height=200)
         progress.progress(100)
 
-# --- Neu-Version: kosmetischer Prototyp ---
+# --- Neu-Version: erweiterte Prototyp-Funktionalität ---
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neueste Version")
+    # Agenten-Modelle auswählen
     llm_list = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-7b", "llama-2-13b"]
     col1, col2 = st.columns(2)
     with col1:
-        a = st.selectbox("Agent A LLM:", llm_list, index=0, key="neu_a")
+        agent_a_model = st.selectbox("Agent A LLM:", llm_list, index=0, key="neu_a")
     with col2:
-        b = st.selectbox("Agent B LLM:", llm_list, index=1, key="neu_b")
-    act = st.button("Diskussion starten", key="neu_act")
-    q = st.text_area("Deine Fragestellung:", key="neu_q")
-    if act and q:
-        st.markdown(f"Modelle: A={a}, B={b}")
-        st.info("Neu-Version: Implementierung folgt")
+        agent_b_model = st.selectbox("Agent B LLM:", llm_list, index=1, key="neu_b")
+
+    # System-Prompt Konfiguration für verschiedene oder gleiche Modelle
+    if agent_a_model != agent_b_model:
+        custom_prompt = st.text_area(
+            "Gemeinsamer Agent-Prompt (optional)",
+            placeholder="Hier Prompt für beide LLMs eingeben..."
+        )
+        diff = st.checkbox("Different Prompts für A und B", key="diff_prompts")
+        if diff:
+            prompt_a = st.text_area("Prompt für Agent A:", placeholder="Prompt für Agent A", key="prompt_a")
+            prompt_b = st.text_area("Prompt für Agent B:", placeholder="Prompt für Agent B", key="prompt_b")
+        else:
+            prompt_a = custom_prompt
+            prompt_b = custom_prompt
+    else:
+        # Gleiche Modelle: wähle Charaktere
+        char_opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
+        c1, c2 = st.columns(2)
+        with c1:
+            char_a = st.selectbox("Agent A Charakter:", char_opts, index=0, key="char_a")
+        with c2:
+            char_b = st.selectbox("Agent B Charakter:", char_opts, index=1, key="char_b")
+        prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
+        prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
+
+    # Diskussion starten
+    action = st.button("Diskussion starten", key="neu_act")
+    user_question = st.text_area("Deine Fragestellung:", key="neu_q")
+    if action and user_question:
+        st.markdown(f"**Ausgewählte Modelle:** Agent A = {agent_a_model}, Agent B = {agent_b_model}")
+        st.markdown("**Verwendete Prompts:**")
+        st.write("Agent A Prompt:", prompt_a or "<leer>")
+        st.write("Agent B Prompt:", prompt_b or "<leer>")
+        st.info("Neu-Version: Debatten-Engine wird hier integriert...")
 
 # === Version Dropdown & Steuerung ===
 version = st.selectbox("Version:", ["Grundversion", "Neu"], index=0)
