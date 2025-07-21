@@ -1,13 +1,12 @@
 # Projekt: LLM-Debate Plattform (MVP)
 # Ziel: Zwei LLMs diskutieren einen Use Case, liefern finalen Konsens mit Zusammenfassung
 
-import openai
+from openai import OpenAI, RateLimitError
 import streamlit as st
 import time
-from openai import RateLimitError
 
 # === STEP 1: Konfiguration ===
-openai.api_key = st.secrets["openai_api_key"]
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 MODEL_A = "gpt-3.5-turbo-0613"
 MODEL_B = "gpt-3.5-turbo-0613"
@@ -34,7 +33,7 @@ start_button = st.button("Diskussion starten")
 def query_agent(model, history, retries=3, wait=10):
     for attempt in range(retries):
         try:
-            response = openai.chat.completions.create(
+            response = client.chat.completions.create(
                 model=model,
                 messages=history,
                 temperature=0.7
