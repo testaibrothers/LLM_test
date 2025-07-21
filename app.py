@@ -49,6 +49,17 @@ def query_agent(model, history, api_key, api_url):
             elif response.status_code == 429:
                 st.warning(f"Rate Limit bei {model}. Warte {WAIT_BETWEEN_CALLS} Sekunden…")
                 time.sleep(WAIT_BETWEEN_CALLS)
+            elif response.status_code == 400:
+                err = response.json().get("error", {})
+                code = err.get("code", "")
+                if code == "model_terms_required":
+                    st.error("Nutzungsbedingungen für das ausgewählte Modell noch nicht akzeptiert. Bitte gehe zum Groq Playground und akzeptiere die Terms: https://console.groq.com/playground?model=" + model)
+                    return "[Terms nicht akzeptiert]"
+                else:
+                    st.error(f"Fehler von API ({response.status_code}): {response.text}")
+                    return "[Fehler bei API-Zugriff]"
+                st.warning(f"Rate Limit bei {model}. Warte {WAIT_BETWEEN_CALLS} Sekunden…")
+                time.sleep(WAIT_BETWEEN_CALLS)
             else:
                 st.error(f"Fehler von API ({response.status_code}): {response.text}")
                 return "[Fehler bei API-Zugriff]"
