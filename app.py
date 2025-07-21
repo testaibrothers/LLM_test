@@ -9,48 +9,32 @@ import json
 # === UI + Konfiguration ===
 st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
 
-# Anbieter & Use Case
-types = ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"]
-provider = st.radio("Modell-Anbieter wählen:", types)
+# Use Case und Agent-Auswahl
 use_case = st.selectbox(
     "Use Case auswählen:",
     ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
     index=0
 )
 
-# Gemeinsamer System-Prompt nur bei gleichem Anbieter
-if provider in types:
-    custom_system = st.text_area(
-        "Gemeinsamer System-Prompt für beide Agenten (optional):",
-        help="Je genauer desto besser"
-    )
-else:
-    custom_system = ""
-
-# Persönlichkeits-Parameter definieren
-params = {
-    "Tonality": ["Optimistisch", "Neutral", "Pessimistisch"],
-    "Risikoprofil": ["Risikofreudig", "Risikovermeidend"],
-    "Fokus": ["Marktpotenzial", "Kosten-&-Preissensitivität", "Skalierbarkeit", "Innovationsgrad"],
-    "Analysestil": ["Analytisch", "Kreativ"]
-}
-
-# Agent-Profile via Dropdowns
-grid_a, grid_b = st.columns(2)
-with grid_a:
-    st.markdown("**Agent A Profil**")
-    a_tonality = st.selectbox("Tonality A:", params["Tonality"], index=0)
-    a_risk     = st.selectbox("Risikoprofil A:", params["Risikoprofil"], index=0)
-    a_focus    = st.selectbox("Fokus A:", params["Fokus"], index=0)
-    a_style    = st.selectbox("Analysestil A:", params["Analysestil"], index=0)
-with grid_b:
-    st.markdown("**Agent B Profil**")
-    b_tonality = st.selectbox("Tonality B:", params["Tonality"], index=2)
-    b_risk     = st.selectbox("Risikoprofil B:", params["Risikoprofil"], index=1)
-    b_focus    = st.selectbox("Fokus B:", params["Fokus"], index=2)
-    b_style    = st.selectbox("Analysestil B:", params["Analysestil"], index=1)
+# Agenten-Modelle auswählen (kosmetisch)
+llm_list = [
+    "gpt-3.5-turbo",
+    "gpt-4",
+    "claude-3",
+    "mistral-7b",
+    "llama-2-13b"
+]
+col1, col2 = st.columns(2)
+with col1:
+    agent_a_model = st.selectbox("Agent A LLM:", llm_list, index=0)
+with col2:
+    agent_b_model = st.selectbox("Agent B LLM:", llm_list, index=1)
 
 # Nutzerinput
+action = st.button("Debatte starten")
+user_question = st.text_area("Deine Fragestellung:")
+
+# === Funktion für API-Aufruf mit Fallback ===
 action = st.button("Debatte starten")
 user_question = st.text_area("Deine Fragestellung:")
 
