@@ -82,13 +82,26 @@ if start_button and user_question:
                     st.write(f"**{speaker}** ({tone}): {statement}")
                 st.markdown("### ✅ Empfehlung")
                 st.write(data.get('recommendation', '-'))
-            else:
-                # Fallback for optimistic/pessimistic JSON
+            # Handle legacy optimistic/pessimistic JSON format
+            elif isinstance(data, dict) and 'optimistic' in data and 'pessimistic' in data:
                 st.markdown("### 🤝 Optimistische Perspektive")
                 st.write(data.get('optimistic', '-'))
                 st.markdown("### ⚠️ Pessimistische Perspektive")
                 st.write(data.get('pessimistic', '-'))
                 st.markdown("### ✅ Empfehlung")
                 st.write(data.get('recommendation', '-'))
-        except Exception:
-            st.error("Antwort konnte nicht geparst werden: " + content)
+            # Handle new key-based JSON format with Agent A/B keys
+            elif isinstance(data, dict) and any(k.startswith('Agent A') for k in data.keys()):
+                st.markdown("### 🗣️ Debatte")
+                for key, val in data.items():
+                    if key.startswith('Agent A') or key.startswith('Agent B'):
+                        tone = val.get('type', '')
+                        message = val.get('message', '')
+                        speaker_label = 'Agent A' if key.startswith('Agent A') else 'Agent B'
+                        st.write(f"**{speaker_label}** ({tone}): {message}")
+                st.markdown("### ✅ Empfehlung")
+                rec = data.get('recommendation', {})
+                rec_msg = rec.get('message') if isinstance(rec, dict) else rec
+                st.write(rec_msg)
+            else:
+                st.error("Antwort konnte nicht geparst werden: " + content)("Antwort konnte nicht geparst werden: " + content)
