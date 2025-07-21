@@ -1,12 +1,12 @@
 # Projekt: LLM-Debate Plattform (MVP)
-# Mit Version-Switch zwischen Grundversion (vollständige Debatten-Engine) und Neu (Prototyp)
+# Mit Version-Switch: Vollständige Debatten-Engine vs. Prototyp-Neu-Version
 
 import streamlit as st
 import requests
 import time
 import json
 
-# === Funktion für Single-Call Debatte mit Fallback für OpenAI-Quota ===
+# === Funktion: Single-Call Debatte mit Fallback für OpenAI-Quota ===
 def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
@@ -15,6 +15,7 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
         code = resp.status_code
         if code == 200:
             return resp.json()["choices"][0]["message"]["content"], selected_provider
+        # OpenAI Quota Fallback
         if code == 429 and selected_provider.startswith("OpenAI"):
             err = resp.json().get("error", {})
             if err.get("code") == "insufficient_quota":
@@ -27,51 +28,47 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
                     prompt,
                     timeout
                 )
+        # Rate Limit Retry
         if code == 429:
             st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
             time.sleep(timeout)
             continue
+        # Andere Fehler
         st.error(f"API-Fehler {code}: {resp.text}")
         return None, selected_provider
 
-# --- Grundversion: Vollständige Debatten-Engine ---
+# === Grundversion: Vollständige Debatten-Engine ===
 def run_grundversion():
-    # UI + Konfiguration
-    st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
-    st.subheader("Debattiere per JSON mit OpenAI oder Groq – wechsle bei Quotengrenze automatisch zu Groq")
+    st.title("🤖 KI-Debattenplattform – Grundversion")
+    st.subheader("Single-Call Debatte mit Fallback & Live-Statistiken")
 
+    # Anbieter & Use Case
     provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
-    use_case = st.selectbox(
-        "Use Case auswählen:",
-        ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
-        index=0
-    )
-    user_question = st.text_area("Deine Fragestellung:")
-    start_button = st.button("Debatte starten")
+    use_case = st.selectbox("Use Case:", ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"], index=0)
+    question = st.text_area("Deine Fragestellung:")
+    start = st.button("Debatte starten")
 
-    if start_button and user_question:
+    if start and question:
         progress = st.progress(0)
-        progress.progress(5)
         st.info("Debatte läuft...")
+        progress.progress(10)
 
-        # Prompt-Erstellung
+        # Prompt-Aufbau
         if use_case == "Allgemeine Diskussion":
             prompt = (
-                f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'\n"
+                f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{question}'\n"
                 "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-                "Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"
+                "Antwort als JSON mit Feldern: optimistic, pessimistic, recommendation"
             )
         else:
             prompt = (
-                f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
-                f"Thema: '{user_question}'\n"
-                "Agent A (optimistisch) analysiert Chancen.\n"
-                "Agent B (pessimistisch) analysiert Risiken.\n"
-                "Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""
+                f"Simuliere Debatte zum Use Case '{use_case}': Thema: '{question}'\n"
+                "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
+                "Antwort als JSON: optimistic, pessimistic, recommendation"
             )
-        progress.progress(20)
+        progress.progress(30)
 
-        # Provider-Koordination
+        # Provider-Konfiguration
         if provider.startswith("OpenAI"):
             api_url = "https://api.openai.com/v1/chat/completions"
             api_key = st.secrets.get("openai_api_key", "")
@@ -82,9 +79,9 @@ def run_grundversion():
             api_key = st.secrets.get("groq_api_key", "")
             model = "mistral-saba-24b"
             cost_rate = 0.0
-        progress.progress(40)
+        progress.progress(50)
 
-        # API-Call & Timing
+        # Call & Timing
         start_time = time.time()
         content, used = debate_call(provider, api_key, api_url, model, prompt)
         duration = time.time() - start_time
@@ -100,80 +97,72 @@ def run_grundversion():
         try:
             data = json.loads(raw)
         except:
-            st.warning("Antwort konnte nicht im JSON-Format geparst werden. Hier die Roh-Antwort:")
+            st.warning("Antwort nicht JSON. Roh-Antwort:")
             st.text_area("Roh-Antwort", raw, height=200)
             progress.progress(100)
             return
-        progress.progress(60)
+        progress.progress(70)
 
-        # Ausgabe & Statistiken
+        # Statistiken & Ausgabe
         st.markdown(f"**Provider:** {used}")
         if used.startswith("OpenAI"):
             tokens = len(raw.split())
-            st.markdown(f"**Geschätzte Kosten:** ${(tokens/1000)*cost_rate:.4f}")
-        st.markdown(f"**Verarbeitungsdauer:** {duration:.2f} Sekunden")
-        progress.progress(80)
+            st.markdown(f"**Kosten:** ${(tokens/1000)*cost_rate:.4f}")
+        st.markdown(f"**Dauer:** {duration:.2f}s")
+        progress.progress(90)
 
-        # Inhaltliche Ausgabe
-        if 'optimistic' in data and 'pessimistic' in data:
-            st.markdown("### 🤝 Optimistische Perspektive")
-            st.write(data['optimistic'])
-            st.markdown("### ⚠️ Pessimistische Perspektive")
-            st.write(data['pessimistic'])
-            st.markdown("### ✅ Empfehlung")
-            st.write(data['recommendation'])
-        else:
-            st.warning("Unbekanntes JSON-Format, hier Roh-Antwort:")
-            st.text_area("Roh-Antwort", raw, height=200)
+        # JSON-Antwort anzeigen
+        st.markdown("### 🤝 Optimistische Perspektive")
+        st.write(data.get('optimistic', '-'))
+        st.markdown("### ⚠️ Pessimistische Perspektive")
+        st.write(data.get('pessimistic', '-'))
+        st.markdown("### ✅ Empfehlung")
+        st.write(data.get('recommendation', '-'))
         progress.progress(100)
 
-# --- Neu-Version: erweiterte Prototyp-Funktionalität ---
+# === Neu-Version: Prototyp mit Agent-Prompts ===
 def run_neu():
-    st.title("🤖 KI-Debattenplattform – Neueste Version")
-    # Agenten-Modelle auswählen
-    llm_list = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-7b", "llama-2-13b"]
-    col1, col2 = st.columns(2)
-    with col1:
-        agent_a_model = st.selectbox("Agent A LLM:", llm_list, index=0, key="neu_a")
-    with col2:
-        agent_b_model = st.selectbox("Agent B LLM:", llm_list, index=1, key="neu_b")
+    st.title("🤖 KI-Debattenplattform – Neu-Version")
 
-    # System-Prompt Konfiguration für verschiedene oder gleiche Modelle
+    # Agenten-Auswahl
+    llm_list = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-7b", "llama-2-13b"]
+    a_col, b_col = st.columns(2)
+    with a_col:
+        agent_a_model = st.selectbox("Agent A LLM:", llm_list, key="neu_a")
+    with b_col:
+        agent_b_model = st.selectbox("Agent B LLM:", llm_list, key="neu_b")
+
+    # Prompt-Konfiguration
     if agent_a_model != agent_b_model:
-        custom_prompt = st.text_area(
-            "Gemeinsamer Agent-Prompt (optional)",
-            placeholder="Hier Prompt für beide LLMs eingeben..."
-        )
-        diff = st.checkbox("Different Prompts für A und B", key="diff_prompts")
+        shared = st.text_area("Gemeinsamer System-Prompt (optional)")
+        diff = st.checkbox("Different Prompts für A und B")
         if diff:
-            prompt_a = st.text_area("Prompt für Agent A:", placeholder="Prompt für Agent A", key="prompt_a")
-            prompt_b = st.text_area("Prompt für Agent B:", placeholder="Prompt für Agent B", key="prompt_b")
+            prompt_a = st.text_area("Prompt Agent A", key="pA")
+            prompt_b = st.text_area("Prompt Agent B", key="pB")
         else:
-            prompt_a = custom_prompt
-            prompt_b = custom_prompt
+            prompt_a = shared
+            prompt_b = shared
     else:
-        # Gleiche Modelle: wähle Charaktere
         char_opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
         with c1:
-            char_a = st.selectbox("Agent A Charakter:", char_opts, index=0, key="char_a")
+            char_a = st.selectbox("Agent A Charakter", char_opts, key="cA")
         with c2:
-            char_b = st.selectbox("Agent B Charakter:", char_opts, index=1, key="char_b")
+            char_b = st.selectbox("Agent B Charakter", char_opts, key="cB")
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
     # Diskussion starten
-    action = st.button("Diskussion starten", key="neu_act")
-    user_question = st.text_area("Deine Fragestellung:", key="neu_q")
-    if action and user_question:
-        st.markdown(f"**Ausgewählte Modelle:** Agent A = {agent_a_model}, Agent B = {agent_b_model}")
-        st.markdown("**Verwendete Prompts:**")
-        st.write("Agent A Prompt:", prompt_a or "<leer>")
-        st.write("Agent B Prompt:", prompt_b or "<leer>")
-        st.info("Neu-Version: Debatten-Engine wird hier integriert...")
+    go = st.button("Diskussion starten", key="go_neu")
+    q = st.text_area("Deine Frage:", key="q_neu")
+    if go and q:
+        st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
+        st.markdown("**Prompts:**")
+        st.write("A:", prompt_a or "<leer>")
+        st.write("B:", prompt_b or "<leer>")
 
-# === Version Dropdown & Steuerung ===
-version = st.selectbox("Version:", ["Grundversion", "Neu"], index=0)
+# === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
 else:
