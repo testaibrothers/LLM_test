@@ -1,5 +1,5 @@
 # Projekt: LLM-Debate Plattform (MVP)
-# Mit Version-Switch zwischen Grundversion (vollständige Debatten-Engine) und Neu (Prototyp)
+# Mit Version-Switch zwischen Grundversion (vollständige Debatten-Engine) und Neu-Version (Prototyp)
 
 import streamlit as st
 import requests
@@ -15,7 +15,6 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
         code = resp.status_code
         if code == 200:
             return resp.json()["choices"][0]["message"]["content"], selected_provider
-        # OpenAI Quota Fallback
         if code == 429 and selected_provider.startswith("OpenAI"):
             err = resp.json().get("error", {})
             if err.get("code") == "insufficient_quota":
@@ -28,12 +27,10 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
                     prompt,
                     timeout
                 )
-        # Rate Limit Retry
         if code == 429:
             st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
             time.sleep(timeout)
             continue
-        # Andere Fehler
         st.error(f"API-Fehler {code}: {resp.text}")
         return None, selected_provider
 
@@ -42,7 +39,6 @@ def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
     st.subheader("Single-Call Debatte mit Fallback & Live-Statistiken")
 
-    # Anbieter & Use Case
     provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
     use_case = st.selectbox("Use Case:", ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"], index=0)
     question = st.text_area("Deine Fragestellung:")
@@ -120,11 +116,11 @@ def run_grundversion():
         st.write(data.get('recommendation', '-'))
         progress.progress(100)
 
-# --- Neu-Version: Prototyp mit Agent-Prompts ---
+# --- Neu-Version: erweiterter Prototyp ---
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
-    # Agenten-Auswahl
+    # Agenten-Modelle auswählen
     llm_list = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-7b", "llama-2-13b"]
     col1, col2 = st.columns(2)
     with col1:
@@ -132,35 +128,40 @@ def run_neu():
     with col2:
         agent_b_model = st.selectbox("Agent B LLM:", llm_list, key="neu_b")
 
-    # Prompt-Konfiguration
-    if agent_a_model != agent_b_model:
-        shared_prompt = st.text_area("Gemeinsamer Agent-Prompt (optional)")
-        diff = st.checkbox("Different Prompts für A und B", key="diff_prompts")
-        if diff:
-            prompt_a = st.text_area("Prompt Agent A", key="pA")
-            prompt_b = st.text_area("Prompt Agent B", key="pB")
+    # Agent-Konfiguration
+    st.markdown("### Agent Konfiguration")
+    mode = st.radio("Konfigurationstyp:", ["Prompt-Konfiguration", "Charakter-Konfiguration"], key="conf_mode")
+
+    if mode == "Prompt-Konfiguration":
+        if agent_a_model != agent_b_model:
+            shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_prompt")
+            diff = st.checkbox("Different Prompts für A und B", key="diff")
+            if diff:
+                prompt_a = st.text_area("Prompt für Agent A", key="pA")
+                prompt_b = st.text_area("Prompt für Agent B", key="pB")
+            else:
+                prompt_a = shared
+                prompt_b = shared
         else:
-            prompt_a = shared_prompt
-            prompt_b = shared_prompt
+            st.info("Gleiche Modelle gewählt – wechsle zu Charakter-Konfiguration.")
+            prompt_a = prompt_b = ""
     else:
-        # Gleiche Modelle: Charakterauswahl
-        char_opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
-        c1, c2 = st.columns(2)
-        with c1:
-            char_a = st.selectbox("Agent A Charakter:", char_opts, key="cA")
-        with c2:
-            char_b = st.selectbox("Agent B Charakter:", char_opts, key="cB")
+        opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
+        ca, cb = st.columns(2)
+        with ca:
+            char_a = st.selectbox("Agent A Charakter:", opts, key="charA")
+        with cb:
+            char_b = st.selectbox("Agent B Charakter:", opts, key="charB")
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
     # Diskussion starten
-    go = st.button("Diskussion starten", key="go_neu")
-    question_neu = st.text_area("Deine Frage:", key="q_neu")
-    if go and question_neu:
+    start = st.button("Diskussion starten", key="neu_start")
+    question = st.text_area("Deine Fragestellung:", key="neu_q")
+    if start and question:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
-        st.markdown("**Prompts:**")
-        st.write("Agent A Prompt:", prompt_a or "<leer>")
-        st.write("Agent B Prompt:", prompt_b or "<leer>")
+        st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
+        st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
 
 # === Version Switch ===
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
