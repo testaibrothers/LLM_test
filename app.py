@@ -120,7 +120,7 @@ def run_grundversion():
         st.write(data.get('recommendation', '-'))
         progress.progress(100)
 
-# --- Neu-Version: erweiterter Prototyp ---
+# --- Neu-Version: Prototyp mit Prompt- und Charakter-Einstellungen ---
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
@@ -132,13 +132,13 @@ def run_neu():
     with col2:
         agent_b_model = st.selectbox("Agent B LLM:", llm_list, key="neu_b")
 
-    # Agent-Einstellung
-    st.markdown("### Agent Einstellung")
-    mode = st.radio("Einstellung:", ["Prompt","Charakter"], key="mode_neu")
+    # Agent Einstellung
+    st.markdown("### Agenteinstellung")
+    mode = st.radio("Einstellung:", ["Prompt", "Charakter"], key="mode_neu")
 
-    # Prompt-Konfiguration
+    # Prompt-Einstellung
     if mode == "Prompt":
-        diff = st.checkbox("Different Prompts für A und B", key="diff_neu")
+        diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
         if diff:
             prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="pA_neu")
             prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="pB_neu")
@@ -146,10 +146,9 @@ def run_neu():
             shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="shared_same")
             prompt_a = shared
             prompt_b = shared
-
-    # Charakter-Konfiguration
+    # Charakter-Einstellung
     else:
-        opts = ["Optimistisch","Pessimistisch","Kritisch"]
+        opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
         with c1:
             char_a = st.selectbox("Agent A:", opts, key="cA_neu")
@@ -159,24 +158,30 @@ def run_neu():
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
     # Diskussion starten
-    start_neu = st.button("Diskussion starten", key="start_neu")
     question_neu = st.text_area("Deine Frage:", key="q_neu")
-    if start_neu and question_neu:
+    if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
+        # Debatte ausführen
+        api_url = "https://api.openai.com/v1/chat/completions"
+        api_key = st.secrets.get("openai_api_key", "")
+        # Agent A Call
+        resp_a, _ = debate_call(
+            "OpenAI", api_key, api_url, agent_a_model,
+            f"{prompt_a}\n{question_neu}"
+        )
+        # Agent B Call
+        resp_b, _ = debate_call(
+            "OpenAI", api_key, api_url, agent_b_model,
+            f"{prompt_b}\n{question_neu}"
+        )
+        st.markdown("### 🗣️ Agent A Antwort")
+        st.write(resp_a)
+        st.markdown("### 🗣️ Agent B Antwort")
+        st.write(resp_b)
 
 # === Version Switch ===
-version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
