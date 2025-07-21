@@ -56,7 +56,23 @@ def run_grundversion():
                 "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
                 "Antwort als JSON mit Feldern: optimistic, pessimistic, recommendation"
             )
-        else:
+            else:
+        char_opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
+        c1, c2 = st.columns(2)
+        with c1:
+            char_a = st.selectbox("Agent A Charakter:", char_opts, key="cA")
+        with c2:
+            char_b = st.selectbox("Agent B Charakter:", char_opts, key="cB")
+        prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
+        prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
+
+    # Diskussion starten (Neu-Version)
+    start = st.button("Diskussion starten", key="neu_start")
+    question_neu = st.text_area("Deine Fragestellung:", key="q_neu")
+    if start and question_neu:
+        st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
+        st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
+        st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
             prompt = (
                 f"Simuliere Debatte zum Use Case '{use_case}': Thema: '{question}'\n"
                 "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
