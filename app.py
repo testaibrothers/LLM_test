@@ -79,7 +79,17 @@ Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne
     content, used = debate_call(provider, api_key, api_url, model, prompt)
     if content:
         try:
-            data = json.loads(content)
+            # Remove Markdown fences if present
+raw = content.strip()
+if raw.startswith("```") and raw.endswith("```"):
+    # strip leading/trailing backticks and optional language marker
+    lines = raw.splitlines()
+    # remove first and last lines
+    lines = lines[1:-1]
+    raw = "
+".join(lines)
+# Now parse JSON
+data = json.loads(raw)
             st.markdown(f"**Provider:** {used}")
             # Legacy optimistic/pessimistic JSON
             if 'optimistic' in data and 'pessimistic' in data:
