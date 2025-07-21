@@ -116,7 +116,8 @@ if start_button and user_question:
             else:
                 # Fallback: zeige Roh-Antwort
                 st.warning("Unbekanntes JSON-Format, hier Roh-Antwort:")
-                st.text_area("Roh-Antwort", content, height=200)            progress.progress(100)
+                st.text_area("Roh-Antwort", content, height=200)
+                progress.progress(100)
         except Exception as e:
             st.error("Fehler beim Verarbeiten der Antwort: " + str(e))
     else:
