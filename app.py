@@ -42,8 +42,9 @@ with col2:
     b_style = st.selectbox("Analysestil B:", params["Analysestil"], index=1)
 
 # Nutzerinput
+custom_system = st.text_area("Systemrolle (optional) für beide Agenten automatisch vor der Debatte einfügen:")
 user_question = st.text_area("Deine Fragestellung:")
-start_button = st.button("Debatte starten")
+start_button = st.button("Debatte starten")("Debatte starten")
 
 # === Funktion für API-Aufruf mit Fallback ===
 def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
@@ -83,21 +84,27 @@ if start_button and user_question:
     progress.progress(5)
     st.info("Debatte läuft...")
 
-            # Prompt erstellen mit Agent‑Profilen
-    # Formuliere Profil-Texte
+                # Prompt erstellen mit Agent‑Profilen
+    system_prefix = custom_system.strip() + "
+" if custom_system and custom_system.strip() else ""
     profile_a = f"Agent A Profil: Tonality={a_tonality}, Risikoprofil={a_risk}, Fokus={a_focus}, Analysestil={a_style}."
     profile_b = f"Agent B Profil: Tonality={b_tonality}, Risikoprofil={b_risk}, Fokus={b_focus}, Analysestil={b_style}."
     if use_case == "Allgemeine Diskussion":
-        prompt = f"""{profile_a}
-{profile_b}
-Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'
-Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"""
+        prompt = (system_prefix + profile_a + "
+" + profile_b + "
+" +
+                  f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'" +
+                  "
+Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation")
     else:
-        prompt = f"""{profile_a}
-{profile_b}
-Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':
-Thema: '{user_question}'
-Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""""
+        prompt = (system_prefix + profile_a + "
+" + profile_b + "
+" +
+                  f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':" +
+                  "
+" + f"Thema: '{user_question}'" +
+                  "
+Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcken und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\"")
     progress.progress(20)
 
     # Provider konfigurierten
