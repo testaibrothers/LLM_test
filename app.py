@@ -13,6 +13,7 @@ MODEL_B = "gpt-3.5-turbo"
 MODEL_REF = "gpt-3.5-turbo"
 
 MAX_ROUNDS = 4
+WAIT_BETWEEN_CALLS = 25  # Sekunden pro API-Aufruf bei RateLimit
 
 USE_CASE_PROMPTS = {
     "SaaS Validator": "Bewerte die Idee kritisch unter folgenden Aspekten: Markt, Monetarisierung, Skalierung, Risiken.",
@@ -29,9 +30,9 @@ use_case = st.selectbox("Use Case auswählen:", list(USE_CASE_PROMPTS.keys()))
 user_question = st.text_area("Deine Fragestellung:")
 start_button = st.button("Diskussion starten")
 
-# === STEP 3: Agentenfunktion mit Retry ===
-def query_agent(model, history, retries=3, wait=10):
-    for attempt in range(retries):
+# === STEP 3: Agentenfunktion mit hartem Delay ===
+def query_agent(model, history):
+    while True:
         try:
             response = client.chat.completions.create(
                 model=model,
@@ -40,12 +41,8 @@ def query_agent(model, history, retries=3, wait=10):
             )
             return response.choices[0].message.content
         except RateLimitError:
-            if attempt < retries - 1:
-                st.warning(f"Rate Limit erreicht bei {model}. Warte {wait} Sekunden und versuche es erneut…")
-                time.sleep(wait)
-            else:
-                st.error(f"Rate Limit überschritten bei {model}. Bitte später erneut versuchen.")
-                raise
+            st.warning(f"Rate Limit erreicht bei {model}. Warte {WAIT_BETWEEN_CALLS} Sekunden…")
+            time.sleep(WAIT_BETWEEN_CALLS)
 
 # === STEP 4: Diskussion starten ===
 if start_button and user_question:
