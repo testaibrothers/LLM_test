@@ -40,11 +40,15 @@ def run_grundversion():
     st.subheader("Single-Call Debatte mit Fallback & Live-Statistiken")
 
     provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
-    use_case = st.selectbox("Use Case:", ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"], index=0)
+    use_case = st.selectbox(
+        "Use Case auswählen:",
+        ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
+        index=0
+    )
     question = st.text_area("Deine Fragestellung:")
-    start = st.button("Debatte starten")
+    start_btn = st.button("Debatte starten")
 
-    if start and question:
+    if start_btn and question:
         progress = st.progress(0)
         st.info("Debatte läuft...")
         progress.progress(10)
@@ -56,23 +60,7 @@ def run_grundversion():
                 "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
                 "Antwort als JSON mit Feldern: optimistic, pessimistic, recommendation"
             )
-            else:
-        char_opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
-        c1, c2 = st.columns(2)
-        with c1:
-            char_a = st.selectbox("Agent A Charakter:", char_opts, key="cA")
-        with c2:
-            char_b = st.selectbox("Agent B Charakter:", char_opts, key="cB")
-        prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
-        prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
-
-    # Diskussion starten (Neu-Version)
-    start = st.button("Diskussion starten", key="neu_start")
-    question_neu = st.text_area("Deine Fragestellung:", key="q_neu")
-    if start and question_neu:
-        st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
-        st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
-        st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
+        else:
             prompt = (
                 f"Simuliere Debatte zum Use Case '{use_case}': Thema: '{question}'\n"
                 "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
@@ -102,7 +90,7 @@ def run_grundversion():
             progress.progress(100)
             return
 
-        # Preprocessing
+        # Preprocessing & Parsing
         raw = content.strip()
         if raw.startswith("```") and raw.endswith("```"):
             raw = "\n".join(raw.splitlines()[1:-1])
@@ -115,7 +103,7 @@ def run_grundversion():
             return
         progress.progress(70)
 
-        # Statistiken & Ausgabe
+        # Ausgabe & Stats
         st.markdown(f"**Provider:** {used}")
         if used.startswith("OpenAI"):
             tokens = len(raw.split())
@@ -144,26 +132,44 @@ def run_neu():
     with col2:
         agent_b_model = st.selectbox("Agent B LLM:", llm_list, key="neu_b")
 
-    # Agent-Konfiguration
+    # Agent Konfiguration
     st.markdown("### Agent Konfiguration")
-    mode = st.radio("Konfigurationstyp:", ["Prompt-Konfiguration", "Charakter-Konfiguration"], key="conf_mode")
+    mode = st.radio("Konfigurationstyp:", ["Prompt-Konfiguration", "Charakter-Konfiguration"], key="mode_neu")
 
+    # Prompt-Konfiguration
     if mode == "Prompt-Konfiguration":
-        col_prompt = st.columns(1)[0]
-        with col_prompt:
-            if agent_a_model != agent_b_model:
-                shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_prompt")
-                diff = st.checkbox("Different Prompts für A und B", key="diff")
-                if diff:
-                    prompt_a = st.text_area("Prompt für Agent A", key="pA")
-                    prompt_b = st.text_area("Prompt für Agent B", key="pB")
-                else:
-                    prompt_a = shared
-                    prompt_b = shared
-            else:
-                # bei gleichen Modellen nur das gemeinsame Promptfeld
-                shared_same = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_same")
-                prompt_a = shared_same
-                prompt_b = shared_same
+        # Gemeinsames Prompt-Feld
+        shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_same")
+        # Unterschiedliche Prompts
+        diff = st.checkbox("Different Prompts für A und B", key="diff_neu")
+        if diff:
+            prompt_a = st.text_area("Prompt für Agent A", key="pA_neu")
+            prompt_b = st.text_area("Prompt für Agent B", key="pB_neu")
+        else:
+            prompt_a = shared
+            prompt_b = shared
     else:
+        # Charakter-Konfiguration
+        opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
+        c1, c2 = st.columns(2)
+        with c1:
+            char_a = st.selectbox("Agent A Charakter:", opts, key="cA_neu")
+        with c2:
+            char_b = st.selectbox("Agent B Charakter:", opts, key="cB_neu")
+        prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
+        prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
+
+    # Diskussion starten
+    start_neu = st.button("Diskussion starten", key="start_neu")
+    question_neu = st.text_area("Deine Frage:", key="q_neu")
+    if start_neu and question_neu:
+        st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
+        st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
+        st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
+
+# === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
     run_neu()
