@@ -132,12 +132,12 @@ def run_neu():
     with col2:
         agent_b_model = st.selectbox("Agent B LLM:", llm_list, key="neu_b")
 
-    # Agent Konfiguration
-    st.markdown("### Agent Konfiguration")
-    mode = st.radio("Einstellung:", ["Prompt", "Charakter"], key="mode_neu")
+    # Agent-Einstellung
+    st.markdown("### Agent Einstellung")
+    mode = st.radio("Einstellung:", ["Prompt","Charakter"], key="mode_neu")
 
-    # Prompt-Konfiguration oder Charakter-Konfiguration
-    if mode == "Prompt":    
+    # Prompt-Konfiguration
+    if mode == "Prompt":
         diff = st.checkbox("Different Prompts für A und B", key="diff_neu")
         if diff:
             prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="pA_neu")
@@ -146,10 +146,12 @@ def run_neu():
             shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="shared_same")
             prompt_a = shared
             prompt_b = shared
+
+    # Charakter-Konfiguration
     else:
-        opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
+        opts = ["Optimistisch","Pessimistisch","Kritisch"]
         c1, c2 = st.columns(2)
-                with c1:
+        with c1:
             char_a = st.selectbox("Agent A:", opts, key="cA_neu")
         with c2:
             char_b = st.selectbox("Agent B:", opts, key="cB_neu")
@@ -165,6 +167,11 @@ def run_neu():
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
 
 # === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
