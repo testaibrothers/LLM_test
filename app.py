@@ -1,55 +1,77 @@
 # Projekt: LLM-Debate Plattform (MVP)
-# Ziel: Debatte in einem einzigen API-Call simulieren (optimistisch vs. pessimistisch + Empfehlung)
+# Ziel: Single-Call Debatte mit automatischem Fallback bei OpenAI-Quota
 
 import streamlit as st
 import requests
+import time
 import json
 
-# === STEP 1: UI + Konfiguration ===
-st.title("🤖 KI-Debattenplattform (Single-Call)")
-st.subheader("Simuliere optimistische und pessimistische Perspektiven in einem Aufruf")
+# === UI + Konfiguration ===
+st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
+st.subheader("Debattiere per JSON mit OpenAI oder Groq – wechsle bei Quotengrenze automatisch zu Groq")
 
 provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
-use_case = st.selectbox("Use Case auswählen:", [
-    "SaaS Validator",
-    "SWOT Analyse",
-    "Pitch-Kritik",
-    "WLT Entscheidung"
-])
+use_case = st.selectbox("Use Case auswählen:", ["SaaS Validator","SWOT Analyse","Pitch-Kritik","WLT Entscheidung"])
 user_question = st.text_area("Deine Fragestellung:")
 start_button = st.button("Debatte starten")
 
-# API-Endpunkte & Keys erst nach Klick abrufen
-if start_button and user_question:
-    if provider.startswith("OpenAI"):
-        api_url = "https://api.openai.com/v1/chat/completions"
-        api_key = st.secrets["openai_api_key"]
-        model = "gpt-3.5-turbo"
-    else:
-        api_url = "https://api.groq.com/openai/v1/chat/completions"
-        api_key = st.secrets.get("groq_api_key", "")
-        model = "mistral-saba-24b"
+# Constants
+timeout = 25
 
-    # Prompt für Single-Call-Debatte
-    debate_prompt = (
-        f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
-        "Agent A (optimistisch, lösungsorientiert, Chancen fokussiert)\n"
-        "Agent B (pessimistisch, risikoorientiert, Gefahren fokussiert)\n"
-        f"Thema: {user_question}\n"
-        "Antworte im JSON-Format mit den Schlüsseln:\n"
-        "optimistic, pessimistic, recommendation"
-    )
+# Funktion: Ein API-Call und Fallback
+async def debate_call(selected_provider, api_key, api_url, model, prompt):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = {"model": model, "messages": [{"role": "user", "content": debate_prompt}], "temperature": 0.7}
+    payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
+    # Single call
+    resp = requests.post(api_url, headers=headers, json=payload)
+    code = resp.status_code
+n    if code == 200:
+        return resp.json().get("choices")[0].get("message").get("content"), selected_provider
+    # Quota exceeded -> fallback
+    if code == 429 and selected_provider.startswith("OpenAI"):
+        err = resp.json().get("error", {})
+        if err.get("code") == "insufficient_quota":
+            st.warning("OpenAI-Quota erschöpft, wechsle automatisch zu Groq...")
+            # Setup Groq
+            gp = "Groq (Mistral-saba-24b)"
+            key = st.secrets.get("groq_api_key", "")
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            mdl = "mistral-saba-24b"
+            time.sleep(timeout)
+            return (await debate_call(gp, key, url, mdl, prompt))
+    # Rate limit generic
+    if code == 429:
+        st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
+        time.sleep(timeout)
+        return (await debate_call(selected_provider, api_key, api_url, model, prompt))
+    # Other errors
+    st.error(f"API-Fehler {code}: {resp.text}")
+    return None, selected_provider
 
-    # Single API Call
-    response = requests.post(api_url, headers=headers, json=payload)
-    if response.status_code != 200:
-        st.error(f"API-Fehler {response.status_code}: {response.text}")
+# Diskussion starten
+if start_button and user_question:
+    prompt = (
+        f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
+        "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
+        f"Thema: {user_question}\nAntworte JSON mit: optimistic, pessimistic, recommendation"
+    )
+
+    # Initial provider setup
+    if provider.startswith("OpenAI"):
+        url = "https://api.openai.com/v1/chat/completions"
+        key = st.secrets.get("openai_api_key", "")
+        mdl = "gpt-3.5-turbo"
     else:
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        key = st.secrets.get("groq_api_key", "")
+        mdl = "mistral-saba-24b"
+
+    # Call with fallback
+    content, used = await debate_call(provider, key, url, mdl, prompt)
+    if content:
         try:
-            content = response.json()["choices"][0]["message"]["content"]
             data = json.loads(content)
+            st.markdown(f"**Provider:** {used}")
             st.markdown("### 🤝 Optimistische Perspektive")
             st.write(data.get("optimistic", "-"))
             st.markdown("### ⚠️ Pessimistische Perspektive")
