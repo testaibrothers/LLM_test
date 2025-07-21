@@ -133,39 +133,21 @@ def run_neu():
     mode = st.radio("Konfigurationstyp:", ["Prompt-Konfiguration", "Charakter-Konfiguration"], key="conf_mode")
 
     if mode == "Prompt-Konfiguration":
-        if agent_a_model != agent_b_model:
-            shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_prompt")
-            diff = st.checkbox("Different Prompts für A und B", key="diff")
-            if diff:
-                prompt_a = st.text_area("Prompt für Agent A", key="pA")
-                prompt_b = st.text_area("Prompt für Agent B", key="pB")
+        col_prompt = st.columns(1)[0]
+        with col_prompt:
+            if agent_a_model != agent_b_model:
+                shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_prompt")
+                diff = st.checkbox("Different Prompts für A und B", key="diff")
+                if diff:
+                    prompt_a = st.text_area("Prompt für Agent A", key="pA")
+                    prompt_b = st.text_area("Prompt für Agent B", key="pB")
+                else:
+                    prompt_a = shared
+                    prompt_b = shared
             else:
-                prompt_a = shared
-                prompt_b = shared
-        else:
-            st.info("Gleiche Modelle gewählt – wechsle zu Charakter-Konfiguration.")
-            prompt_a = prompt_b = ""
+                # bei gleichen Modellen nur das gemeinsame Promptfeld
+                shared_same = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_same")
+                prompt_a = shared_same
+                prompt_b = shared_same
     else:
-        opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
-        ca, cb = st.columns(2)
-        with ca:
-            char_a = st.selectbox("Agent A Charakter:", opts, key="charA")
-        with cb:
-            char_b = st.selectbox("Agent B Charakter:", opts, key="charB")
-        prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
-        prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
-
-    # Diskussion starten
-    start = st.button("Diskussion starten", key="neu_start")
-    question = st.text_area("Deine Fragestellung:", key="neu_q")
-    if start and question:
-        st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
-        st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
-        st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
-
-# === Version Switch ===
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
     run_neu()
