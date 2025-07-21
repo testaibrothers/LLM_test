@@ -11,7 +11,7 @@ st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
 st.subheader("Debattiere per JSON mit OpenAI oder Groq – wechsle bei Quotengrenze automatisch zu Groq")
 
 provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
-use_case = st.selectbox("Use Case auswählen:", ["SaaS Validator","SWOT Analyse","Pitch-Kritik","WLT Entscheidung"])
+use_case = st.selectbox("Use Case auswählen:", ["SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"])
 user_question = st.text_area("Deine Fragestellung:")
 start_button = st.button("Debatte starten")
 
@@ -19,13 +19,13 @@ start_button = st.button("Debatte starten")
 timeout = 25
 
 # Funktion: Ein API-Call und Fallback
-async def debate_call(selected_provider, api_key, api_url, model, prompt):
+def debate_call(selected_provider, api_key, api_url, model, prompt):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
     # Single call
     resp = requests.post(api_url, headers=headers, json=payload)
     code = resp.status_code
-n    if code == 200:
+    if code == 200:
         return resp.json().get("choices")[0].get("message").get("content"), selected_provider
     # Quota exceeded -> fallback
     if code == 429 and selected_provider.startswith("OpenAI"):
@@ -38,12 +38,12 @@ n    if code == 200:
             url = "https://api.groq.com/openai/v1/chat/completions"
             mdl = "mistral-saba-24b"
             time.sleep(timeout)
-            return (await debate_call(gp, key, url, mdl, prompt))
+            return debate_call(gp, key, url, mdl, prompt)
     # Rate limit generic
     if code == 429:
         st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
         time.sleep(timeout)
-        return (await debate_call(selected_provider, api_key, api_url, model, prompt))
+        return debate_call(selected_provider, api_key, api_url, model, prompt)
     # Other errors
     st.error(f"API-Fehler {code}: {resp.text}")
     return None, selected_provider
@@ -67,7 +67,7 @@ if start_button and user_question:
         mdl = "mistral-saba-24b"
 
     # Call with fallback
-    content, used = await debate_call(provider, key, url, mdl, prompt)
+    content, used = debate_call(provider, key, url, mdl, prompt)
     if content:
         try:
             data = json.loads(content)
