@@ -10,12 +10,38 @@ import json
 st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
 st.subheader("Debattiere per JSON mit OpenAI oder Groq – wechsle bei Quotengrenze automatisch zu Groq")
 
+# Anbieter & Use Case
 provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
 use_case = st.selectbox(
     "Use Case auswählen:",
     ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
     index=0
 )
+
+# Persönlichkeits-Parameter definieren
+params = {
+    "Tonality": ["Optimistisch", "Neutral", "Pessimistisch"],
+    "Risikoprofil": ["Risikofreudig", "Risikovermeidend"],
+    "Fokus": ["Marktpotenzial", "Kosten-&-Preissensitivität", "Skalierbarkeit", "Innovationsgrad"],
+    "Analysestil": ["Analytisch", "Kreativ"]
+}
+
+# Agent-Profile via Dropdowns
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("**Agent A Profil**")
+    a_tonality = st.selectbox("Tonality A:", params["Tonality"], index=0)
+    a_risk = st.selectbox("Risikoprofil A:", params["Risikoprofil"], index=1)
+    a_focus = st.selectbox("Fokus A:", params["Fokus"], index=0)
+    a_style = st.selectbox("Analysestil A:", params["Analysestil"], index=0)
+with col2:
+    st.markdown("**Agent B Profil**")
+    b_tonality = st.selectbox("Tonality B:", params["Tonality"], index=2)
+    b_risk = st.selectbox("Risikoprofil B:", params["Risikoprofil"], index=1)
+    b_focus = st.selectbox("Fokus B:", params["Fokus"], index=3)
+    b_style = st.selectbox("Analysestil B:", params["Analysestil"], index=1)
+
+# Nutzerinput
 user_question = st.text_area("Deine Fragestellung:")
 start_button = st.button("Debatte starten")
 
@@ -57,19 +83,28 @@ if start_button and user_question:
     progress.progress(5)
     st.info("Debatte läuft...")
 
-    # Prompt erstellen
+        # Prompt erstellen mit Agent‑Profilen
+    # Formuliere Profil-Texte
+    profile_a = f"Agent A Profil: Tonality={a_tonality}, Risikoprofil={a_risk}, Fokus={a_focus}, Analysestil={a_style}."
+    profile_b = f"Agent B Profil: Tonality={b_tonality}, Risikoprofil={b_risk}, Fokus={b_focus}, Analysestil={b_style}."
     if use_case == "Allgemeine Diskussion":
         prompt = (
-            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'\n"
-            "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
+            f"{profile_a}
+{profile_b}
+"
+            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'
+"
             "Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"
         )
     else:
         prompt = (
-            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
-            f"Thema: '{user_question}'\n"
-            "Agent A (optimistisch) analysiert Chancen.\n"
-            "Agent B (pessimistisch) analysiert Risiken.\n"
+            f"{profile_a}
+{profile_b}
+"
+            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':
+"
+            f"Thema: '{user_question}'
+"
             "Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""
         )
     progress.progress(20)
