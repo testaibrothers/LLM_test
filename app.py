@@ -3,6 +3,8 @@
 
 import openai
 import streamlit as st
+import time
+from openai import RateLimitError
 
 # === STEP 1: Konfiguration ===
 openai.api_key = st.secrets["openai_api_key"]
@@ -10,7 +12,6 @@ openai.api_key = st.secrets["openai_api_key"]
 MODEL_A = "gpt-4o"
 MODEL_B = "gpt-3.5-turbo-0613"
 MODEL_REF = "gpt-4o"
-
 
 MAX_ROUNDS = 4
 
@@ -29,14 +30,23 @@ use_case = st.selectbox("Use Case auswählen:", list(USE_CASE_PROMPTS.keys()))
 user_question = st.text_area("Deine Fragestellung:")
 start_button = st.button("Diskussion starten")
 
-# === STEP 3: Agentenfunktion ===
-def query_agent(model, history):
-    response = openai.chat.completions.create(
-        model=model,
-        messages=history,
-        temperature=0.7
-    )
-    return response.choices[0].message.content
+# === STEP 3: Agentenfunktion mit Retry ===
+def query_agent(model, history, retries=3, wait=10):
+    for attempt in range(retries):
+        try:
+            response = openai.chat.completions.create(
+                model=model,
+                messages=history,
+                temperature=0.7
+            )
+            return response.choices[0].message.content
+        except RateLimitError:
+            if attempt < retries - 1:
+                st.warning(f"Rate Limit erreicht bei {model}. Warte {wait} Sekunden und versuche es erneut…")
+                time.sleep(wait)
+            else:
+                st.error(f"Rate Limit überschritten bei {model}. Bitte später erneut versuchen.")
+                raise
 
 # === STEP 4: Diskussion starten ===
 if start_button and user_question:
