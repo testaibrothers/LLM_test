@@ -87,8 +87,10 @@ if start_button and user_question:
         cost_rate = 0.0
     progress.progress(40)
 
-    # API-Call mit Fallback
+    # API-Call mit Fallback und Zeitmessung
+    start_time = time.time()
     content, used = debate_call(provider, api_key, api_url, model, prompt)
+    duration = time.time() - start_time  # Dauer in Sekunden
     if not content:
         st.error("Keine Antwort erhalten.")
         progress.progress(100)
@@ -114,6 +116,8 @@ if start_button and user_question:
             tokens = len(raw.split())
             est_cost = tokens/1000 * cost_rate
             st.markdown(f"**Geschätzte Kosten:** ${est_cost:.4f}")
+        # Verarbeitungslaufzeit anzeigen
+        st.markdown(f"**Verarbeitungsdauer:** {duration:.2f} Sekunden")
         progress.progress(80)
 
         # Ausgabe je Format
