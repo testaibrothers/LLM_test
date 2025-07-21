@@ -134,25 +134,25 @@ def run_neu():
 
     # Agent Konfiguration
     st.markdown("### Agent Konfiguration")
-    mode = st.radio("Konfigurationstyp:", ["Prompt-Konfiguration", "Charakter-Konfiguration"], key="mode_neu")
+    mode = st.radio("Einstellung:", ["Prompt", "Charakter"], key="mode_neu")
 
     # Prompt-Konfiguration oder Charakter-Konfiguration
-    if mode == "Prompt-Konfiguration":
+    if mode == "Prompt":    
         diff = st.checkbox("Different Prompts für A und B", key="diff_neu")
         if diff:
-            prompt_a = st.text_area("Prompt für Agent A", key="pA_neu")
-            prompt_b = st.text_area("Prompt für Agent B", key="pB_neu")
+            prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="pA_neu")
+            prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="pB_neu")
         else:
-            shared = st.text_area("Gemeinsamer Prompt für beide Agenten (optional)", key="shared_same")
+            shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="shared_same")
             prompt_a = shared
             prompt_b = shared
     else:
         opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
-        with c1:
-            char_a = st.selectbox("Agent A Charakter:", opts, key="cA_neu")
+                with c1:
+            char_a = st.selectbox("Agent A:", opts, key="cA_neu")
         with c2:
-            char_b = st.selectbox("Agent B Charakter:", opts, key="cB_neu")
+            char_b = st.selectbox("Agent B:", opts, key="cB_neu")
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
