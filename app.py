@@ -1,5 +1,5 @@
 # Projekt: LLM-Debate Plattform (MVP)
-# Ziel: Single-Call Debatte mit automatischem Fallback bei OpenAI-Quota und Live-Statistiken
+# Ziel: Single-Call Debatte mit automatischem Fallback und konfigurierbaren Agent-Profilen
 
 import streamlit as st
 import requests
@@ -9,14 +9,23 @@ import json
 # === UI + Konfiguration ===
 st.title("🤖 KI-Debattenplattform (Auto-Fallback)")
 
-
 # Anbieter & Use Case
-provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
+types = ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"]
+provider = st.radio("Modell-Anbieter wählen:", types)
 use_case = st.selectbox(
     "Use Case auswählen:",
     ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
     index=0
 )
+
+# Gemeinsamer System-Prompt nur bei gleichem Anbieter
+if provider in types:
+    custom_system = st.text_area(
+        "Gemeinsamer System-Prompt für beide Agenten (optional):",
+        help="Je genauer desto besser"
+    )
+else:
+    custom_system = ""
 
 # Persönlichkeits-Parameter definieren
 params = {
@@ -27,47 +36,35 @@ params = {
 }
 
 # Agent-Profile via Dropdowns
-col1, col2 = st.columns(2)
-with col1:
+grid_a, grid_b = st.columns(2)
+with grid_a:
     st.markdown("**Agent A Profil**")
     a_tonality = st.selectbox("Tonality A:", params["Tonality"], index=0)
-    a_risk = st.selectbox("Risikoprofil A:", params["Risikoprofil"], index=1)
-    a_focus = st.selectbox("Fokus A:", params["Fokus"], index=0)
-    a_style = st.selectbox("Analysestil A:", params["Analysestil"], index=0)
-with col2:
+    a_risk     = st.selectbox("Risikoprofil A:", params["Risikoprofil"], index=0)
+    a_focus    = st.selectbox("Fokus A:", params["Fokus"], index=0)
+    a_style    = st.selectbox("Analysestil A:", params["Analysestil"], index=0)
+with grid_b:
     st.markdown("**Agent B Profil**")
     b_tonality = st.selectbox("Tonality B:", params["Tonality"], index=2)
-    b_risk = st.selectbox("Risikoprofil B:", params["Risikoprofil"], index=1)
-    b_focus = st.selectbox("Fokus B:", params["Fokus"], index=3)
-    b_style = st.selectbox("Analysestil B:", params["Analysestil"], index=1)
+    b_risk     = st.selectbox("Risikoprofil B:", params["Risikoprofil"], index=1)
+    b_focus    = st.selectbox("Fokus B:", params["Fokus"], index=2)
+    b_style    = st.selectbox("Analysestil B:", params["Analysestil"], index=1)
 
 # Nutzerinput
-# Zeige Systemrolle nur wenn beide Anbieter gleich sind
-if provider.startswith("OpenAI") or provider.startswith("Groq"):
-    custom_system = st.text_area(
-        "Gemeinsamer System-Prompt für beide Agenten (optional):",
-        placeholder="z.B. Du bist ein neutraler Berater...",
-        help="Je genauer desto besser"
-    )
-else:
-    custom_system = None
-
+action = st.button("Debatte starten")
 user_question = st.text_area("Deine Fragestellung:")
-start_button = st.button("Debatte starten")
 
-# === Funktion für API-Aufruf mit Fallback ===
+# API-Call mit Fallback definieren
 def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
+    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": 0.7}
     while True:
         resp = requests.post(api_url, headers=headers, json=payload)
-        code = resp.status_code
-        if code == 200:
+        if resp.status_code == 200:
             return resp.json()["choices"][0]["message"]["content"], selected_provider
-        # Quota exceeded -> fallback
-        if code == 429 and selected_provider.startswith("OpenAI"):
+        if resp.status_code == 429:
             err = resp.json().get("error", {})
-            if err.get("code") == "insufficient_quota":
+            if err.get("code") == "insufficient_quota" and selected_provider.startswith("OpenAI"):
                 st.warning("OpenAI-Quota erschöpft, wechsle automatisch zu Groq...")
                 return debate_call(
                     "Groq (Mistral-saba-24b)",
@@ -77,26 +74,26 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
                     prompt,
                     timeout
                 )
-        # Rate limit -> retry
-        if code == 429:
             st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
             time.sleep(timeout)
             continue
-        # Andere Fehler
-        st.error(f"API-Fehler {code}: {resp.text}")
+        st.error(f"API-Fehler {resp.status_code}: {resp.text}")
         return None, selected_provider
 
-# === Diskussion starten und Statistiken anzeigen ===
-if start_button and user_question:
-    # Fortschrittsbalken initialisieren
-    progress = st.progress(0)
-    progress.progress(5)
-    st.info("Debatte läuft...")
+# Diskussion starten
+if action and user_question:
+    # Verhindere identische Profile
+    if (a_tonality == b_tonality and a_risk == b_risk and a_focus == b_focus and a_style == b_style):
+        st.error("Agent A und B dürfen nicht dieselben Profile haben.")
+        st.stop()
 
-                    # Prompt erstellen mit Agent‑Profilen
-    # Gemeinsamer System-Prompt
-    system_prefix = custom_system.strip() + "
-" if custom_system and custom_system.strip() else ""
+    # Progress Bar und Zeitmessung
+    progress = st.progress(0)
+    progress.progress(10)
+    start = time.time()
+
+    # System-Prompt prefix
+    system_prefix = (custom_system.strip() + "\n") if custom_system and custom_system.strip() else ""
     profile_a = f"Agent A Profil: Tonality={a_tonality}, Risikoprofil={a_risk}, Fokus={a_focus}, Analysestil={a_style}."
     profile_b = f"Agent B Profil: Tonality={b_tonality}, Risikoprofil={b_risk}, Fokus={b_focus}, Analysestil={b_style}."
     if use_case == "Allgemeine Diskussion":
@@ -110,74 +107,57 @@ Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pess
 Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':
 Thema: '{user_question}'
 Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcken und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""""
-    progress.progress(20)
+    progress.progress(30)
 
-    # Provider konfigurierten
+    # Provider-Konfiguration
     if provider.startswith("OpenAI"):
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         model = "gpt-3.5-turbo"
-        cost_rate = 0.002  # USD per 1k tokens
+        cost_rate = 0.002
     else:
         api_url = "https://api.groq.com/openai/v1/chat/completions"
         api_key = st.secrets.get("groq_api_key", "")
         model = "mistral-saba-24b"
         cost_rate = 0.0
-    progress.progress(40)
+    progress.progress(50)
 
-    # API-Call mit Fallback und Zeitmessung
-    start_time = time.time()
     content, used = debate_call(provider, api_key, api_url, model, prompt)
-    duration = time.time() - start_time  # Dauer in Sekunden
+    duration = time.time() - start
+    progress.progress(70)
+
     if not content:
         st.error("Keine Antwort erhalten.")
-        progress.progress(100)
+        st.stop()
+
+    # Rohverarbeitung und Parsing
+    raw = content.strip()
+    if raw.startswith("```"):
+        raw = "\n".join(raw.splitlines()[1:-1])
+    try:
+        data = json.loads(raw)
+    except:
+        st.warning("Antwort nicht im JSON-Format, roher Inhalt unten.")
+        st.text_area("Roh-Antwort", raw, height=200)
+        st.stop()
+    progress.progress(90)
+
+    # Ausgabe und Stats
+    st.markdown(f"**Provider:** {used}")
+    tokens = len(raw.split())
+    if used.startswith("OpenAI"):
+        st.markdown(f"**Geschätzte Kosten:** ${(tokens/1000)*cost_rate:.4f}")
+    st.markdown(f"**Verarbeitungsdauer:** {duration:.2f} Sekunden")
+    
+    # Debattenausgabe
+    if 'optimistic' in data and 'pessimistic' in data:
+        st.markdown("### 🤝 Optimistische Perspektive")
+        st.write(data['optimistic'])
+        st.markdown("### ⚠️ Pessimistische Perspektive")
+        st.write(data['pessimistic'])
+        st.markdown("### ✅ Empfehlung")
+        st.write(data['recommendation'])
     else:
-        # Markdown-Fences entfernen
-        raw = content.strip()
-        if raw.startswith("```") and raw.endswith("```"):
-            lines = raw.splitlines()
-            raw = "\n".join(lines[1:-1])
-        # JSON parsen
-        try:
-            data = json.loads(raw)
-        except Exception as e:
-            st.warning("Antwort konnte nicht im JSON-Format geparst werden. Hier die Roh-Antwort:")
-            st.text_area("Roh-Antwort", raw, height=200)
-            progress.progress(100)
-            st.stop()
-
-        progress.progress(60)
-        st.markdown(f"**Provider:** {used}")
-        # API-Kosten schätzen
-        if used.startswith("OpenAI"):
-            tokens = len(raw.split())
-            est_cost = tokens/1000 * cost_rate
-            st.markdown(f"**Geschätzte Kosten:** ${est_cost:.4f}")
-        # Verarbeitungslaufzeit anzeigen
-        st.markdown(f"**Verarbeitungsdauer:** {duration:.2f} Sekunden")
-        progress.progress(80)
-
-        # Ausgabe je Format
-        if 'optimistic' in data and 'pessimistic' in data:
-            st.markdown("### 🤝 Optimistische Perspektive")
-            st.write(data['optimistic'])
-            st.markdown("### ⚠️ Pessimistische Perspektive")
-            st.write(data['pessimistic'])
-            st.markdown("### ✅ Empfehlung")
-            st.write(data['recommendation'])
-        elif any(key.startswith('Agent A') or key.startswith('Agent B') for key in data.keys()):
-            st.markdown("### 🗣️ Debatte")
-            for key, val in data.items():
-                if key.startswith('Agent A') or key.startswith('Agent B'):
-                    tone = val.get('type', '')
-                    message = val.get('message', '')
-                    speaker = 'Agent A' if 'A' in key else 'Agent B'
-                    st.write(f"**{speaker}** ({tone}): {message}")
-            st.markdown("### ✅ Empfehlung")
-            rec = data.get('recommendation', {})
-            st.write(rec.get('message') if isinstance(rec, dict) else rec)
-        else:
-            st.warning("Unbekanntes JSON-Format, hier Roh-Antwort:")
-            st.text_area("Roh-Antwort", raw, height=200)
-        progress.progress(100)
+        st.warning("Unbekanntes Format, hier roher Inhalt:")
+        st.text_area("Roh-Antwort", raw, height=200)
+    progress.progress(100)
