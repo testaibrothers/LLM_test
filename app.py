@@ -22,29 +22,28 @@ timeout = 25
 def debate_call(selected_provider, api_key, api_url, model, prompt):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
-    # Single call
     resp = requests.post(api_url, headers=headers, json=payload)
     code = resp.status_code
+    # Erfolgreicher Aufruf
     if code == 200:
-        return resp.json().get("choices")[0].get("message").get("content"), selected_provider
-    # Quota exceeded -> fallback
+        return resp.json()["choices"][0]["message"]["content"], selected_provider
+    # Quota exceeded -> fallback zu Groq
     if code == 429 and selected_provider.startswith("OpenAI"):
         err = resp.json().get("error", {})
         if err.get("code") == "insufficient_quota":
             st.warning("OpenAI-Quota erschöpft, wechsle automatisch zu Groq...")
-            # Setup Groq
             gp = "Groq (Mistral-saba-24b)"
             key = st.secrets.get("groq_api_key", "")
             url = "https://api.groq.com/openai/v1/chat/completions"
             mdl = "mistral-saba-24b"
             time.sleep(timeout)
             return debate_call(gp, key, url, mdl, prompt)
-    # Rate limit generic
+    # Rate limit -> retry
     if code == 429:
         st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
         time.sleep(timeout)
         return debate_call(selected_provider, api_key, api_url, model, prompt)
-    # Other errors
+    # Andere Fehler
     st.error(f"API-Fehler {code}: {resp.text}")
     return None, selected_provider
 
@@ -55,8 +54,7 @@ if start_button and user_question:
         "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
         f"Thema: {user_question}\nAntworte JSON mit: optimistic, pessimistic, recommendation"
     )
-
-    # Initial provider setup
+    # Provider konfigurieren
     if provider.startswith("OpenAI"):
         url = "https://api.openai.com/v1/chat/completions"
         key = st.secrets.get("openai_api_key", "")
@@ -66,13 +64,13 @@ if start_button and user_question:
         key = st.secrets.get("groq_api_key", "")
         mdl = "mistral-saba-24b"
 
-    # Call with fallback
+    # Call mit Fallback
     content, used = debate_call(provider, key, url, mdl, prompt)
     if content:
         try:
             data = json.loads(content)
             st.markdown(f"**Provider:** {used}")
-            # Check for 'debate' structure
+            # 'debate'-Struktur
             if isinstance(data, dict) and 'debate' in data:
                 st.markdown("### 🗣️ Debatte")
                 for entry in data['debate']:
@@ -82,7 +80,7 @@ if start_button and user_question:
                     st.write(f"**{speaker}** ({tone}): {statement}")
                 st.markdown("### ✅ Empfehlung")
                 st.write(data.get('recommendation', '-'))
-            # Handle legacy optimistic/pessimistic JSON format
+            # Legacy 'optimistic'/ 'pessimistic'
             elif isinstance(data, dict) and 'optimistic' in data and 'pessimistic' in data:
                 st.markdown("### 🤝 Optimistische Perspektive")
                 st.write(data.get('optimistic', '-'))
@@ -90,7 +88,7 @@ if start_button and user_question:
                 st.write(data.get('pessimistic', '-'))
                 st.markdown("### ✅ Empfehlung")
                 st.write(data.get('recommendation', '-'))
-            # Handle new key-based JSON format with Agent A/B keys
+            # Key-based Agent A/B Format
             elif isinstance(data, dict) and any(k.startswith('Agent A') for k in data.keys()):
                 st.markdown("### 🗣️ Debatte")
                 for key, val in data.items():
@@ -104,4 +102,8 @@ if start_button and user_question:
                 rec_msg = rec.get('message') if isinstance(rec, dict) else rec
                 st.write(rec_msg)
             else:
-                st.error("Antwort konnte nicht geparst werden: " + content)("Antwort konnte nicht geparst werden: " + content)
+                st.error("Antwort konnte nicht geparst werden: " + content)
+        except Exception as e:
+            st.error("Fehler beim Verarbeiten der Antwort: " + str(e))
+    else:
+        st.error("Keine Antwort erhalten.")
