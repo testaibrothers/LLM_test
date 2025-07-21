@@ -49,19 +49,27 @@ def debate_call(selected_provider, api_key, api_url, model, prompt):
 
 # Diskussion starten
 if start_button and user_question:
-    # Prompt-Erstellung abhängig vom Use Case
+    # Prompt-Erstellung basierend auf Use Case
     if use_case == "Allgemeine Diskussion":
         prompt = (
-            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: {user_question}\n"
-            "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
+            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{user_question}'
+"
+            "Agent A (optimistisch)
+Agent B (pessimistisch)
+"
             "Antworte ausschließlich mit einem JSON-Objekt mit den Feldern: optimistic, pessimistic, recommendation"
         )
     else:
         prompt = (
-            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':\n"
-            "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-            f"Thema: {user_question}\n"
-            "Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne Fließtext, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""
+            f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Use Case '{use_case}':
+"
+            f"Thema: '{user_question}'
+"
+            "Agent A (optimistisch) analysiert Chancen.
+"
+            "Agent B (pessimistisch) analysiert Risiken.
+"
+            "Antworte ausschließlich mit einem reinen JSON-Objekt ohne Code-Blöcke und ohne weiteren Text, verwende genau die Felder \"optimistic\", \"pessimistic\" und \"recommendation\""
         )
     # Provider konfigurieren
     if provider.startswith("OpenAI"):
@@ -74,6 +82,7 @@ if start_button and user_question:
         mdl = "mistral-saba-24b"
 
     # Call mit Fallback
+    content, used = debate_call(provider, key, url, mdl, prompt)
     content, used = debate_call(provider, key, url, mdl, prompt)
     if content:
         try:
