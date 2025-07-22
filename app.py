@@ -120,7 +120,6 @@ def run_neu():
         st.write(resp_b or "Keine Antwort.")
 
 # Version-Auswahl
-en
 version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
