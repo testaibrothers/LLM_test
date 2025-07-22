@@ -133,7 +133,7 @@ def run_neu():
     st.markdown("### Agenteinstellung")
     mode = st.radio("Einstellung:", ["Prompt", "Charakter"], key="mode_neu")
 
-    # Prompt-Konfiguration
+        # Prompt-Konfiguration
     if mode == "Prompt":
         # Prompt-Generator als optionales Sidebar-Feature
         with st.sidebar.expander("Prompt-Generator (optional)", expanded=False):
@@ -156,13 +156,12 @@ def run_neu():
                     init_sys
                 )
                 # Schritt 2: Generierung basierend auf dem Schlagwort
-                gen_input = keyword
                 prompt_gen, _ = debate_call(
                     "Groq",
                     generator_key,
                     generator_url,
                     "mistral-saba-24b",
-                    gen_input
+                    keyword
                 )
                 # Ausgabe des generierten Prompts
                 st.text_area(
@@ -171,7 +170,6 @@ def run_neu():
                     height=150,
                     key="gen_out"
                 )
-        # Agent-Prompts"Generierter Prompt:", prompt_gen or "Fehler bei der Prompt-Generierung", height=150, key="gen_out")
         # Agent-Prompts
         diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
         if diff:
@@ -182,7 +180,6 @@ def run_neu():
             prompt_a = shared
             prompt_b = shared
     else:
-        # Charakter-Einstellung
         opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
         with c1:
