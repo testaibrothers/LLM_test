@@ -1,11 +1,92 @@
+# main.py – Kompaktvariante (alles in einer Datei, nur Prompt-Template extern)
 import streamlit as st
-from api import debate_call, generate_prompt_grok
-from config import PROVIDERS, USE_CASES, LLM_LIST, get_api_conf
-from utils import parse_json_response, load_prompt_template, save_prompt_template, build_final_prompt
+import requests
 import time
+import json
 
+# === Konfiguration ===
+PROVIDERS = ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"]
+USE_CASES = ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"]
+LLM_LIST = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-saba-24b", "llama-2-13b"]
+
+def get_api_conf(provider):
+    if provider.startswith("OpenAI"):
+        return "https://api.openai.com/v1/chat/completions", st.secrets.get("openai_api_key", ""), "gpt-3.5-turbo", 0.002
+    else:
+        return "https://api.groq.com/openai/v1/chat/completions", st.secrets.get("groq_api_key", ""), "mistral-saba-24b", 0.0
+
+# === Prompt-Handling und Hilfsfunktionen ===
+def load_prompt_template(path="prompt_template.txt"):
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def save_prompt_template(content, path="prompt_template.txt"):
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+def build_final_prompt(user_keyword, path="prompt_template.txt"):
+    template = load_prompt_template(path)
+    return template.replace("[SCHLAGWORT]", user_keyword)
+
+def parse_json_response(content):
+    raw = content.strip()
+    if raw.startswith("```") and raw.endswith("```"):
+        raw = "\n".join(raw.splitlines()[1:-1])
+    try:
+        data = json.loads(raw)
+    except:
+        data = {}
+    return data, raw
+
+# === API-Calls ===
+def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": 0.7}
+    while True:
+        resp = requests.post(api_url, headers=headers, json=payload)
+        if resp.status_code == 200:
+            return resp.json()["choices"][0]["message"]["content"], selected_provider
+        if resp.status_code == 429:
+            error = resp.json().get("error", {})
+            if selected_provider.startswith("OpenAI") and error.get("code") == "insufficient_quota":
+                st.warning("OpenAI-Quota erschöpft, wechsle automatisch zu Groq...")
+                return debate_call(
+                    "Groq (Mistral-saba-24b)",
+                    st.secrets.get("groq_api_key", ""),
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    "mistral-saba-24b",
+                    prompt,
+                    timeout
+                )
+            st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
+            time.sleep(timeout)
+            continue
+        st.error(f"API-Fehler {resp.status_code}: {resp.text}")
+        return None, selected_provider
+
+
+def generate_prompt_grok(final_prompt):
+    groq_url = "https://api.groq.com/openai/v1/chat/completions"
+    groq_key = st.secrets.get("groq_api_key", "")
+    payload = {
+        "model": "mistral-saba-24b",
+        "messages": [
+            {"role": "system", "content": "Schreibe nur das Wort: TEST12345"}
+    ],
+    "temperature": 0.1
+    }
+    resp = requests.post(groq_url, headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}, json=payload)
+    st.text_area("API-Response (raw)", resp.text)  # <- Debug-Ausgabe!
+    if resp.status_code == 200:
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    else:
+        return f"Generator-API-Fehler {resp.status_code}: {resp.text}"
+
+
+# === Streamlit-UI ===
 st.set_page_config(page_title="🤖 LLM-Debattenplattform", layout="wide")
 
+# Editierbares Prompt-Template (Admin-Paneel, optional)
 def prompt_editor_ui():
     st.sidebar.markdown("### Konfigurationsprompt bearbeiten")
     template = load_prompt_template()
@@ -39,7 +120,6 @@ if version == "Grundversion":
         progress.progress(50)
         start_time = time.time()
         content, used = debate_call(provider, api_key, api_url, model, prompt)
-        st.text_area("RAW-Response vom LLM", content or "", height=150)
         duration = time.time() - start_time
         if not content:
             st.error("Keine Antwort erhalten.")
@@ -79,6 +159,7 @@ else:
             schlagwort = st.text_input("Schlagwort für den Prompt:", key="gen_kw")
             if st.button("Generiere Prompt", key="gen_btn") and schlagwort:
                 prompt_gen = build_final_prompt(schlagwort)
+                st.text_area("Debug: Finaler Prompt an LLM", prompt_gen)
                 gen_response = generate_prompt_grok(prompt_gen)
                 st.text_area("Generierter Prompt:", value=gen_response, height=150, key="gen_out")
                 a, b = st.columns(2)
