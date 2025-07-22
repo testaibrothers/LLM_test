@@ -5,6 +5,9 @@ import json
 import re
 import time
 
+# === Page Configuration ===
+st.set_page_config(page_title="KI-Debattenplattform", layout="centered")
+
 # === JSON Parsing ===
 def extract_json_fallback(text):
     optimistic = re.search(r'optimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
