@@ -16,6 +16,7 @@ def extract_json_fallback(text):
         "recommendation": recommendation.group(1).strip() if recommendation else "-"
     }
 
+
 def show_debug_output(raw):
     st.warning("Antwort nicht als JSON erkennbar. Roh-Antwort folgt:")
     st.code(raw, language="text")
@@ -72,7 +73,6 @@ def run_grundversion():
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         model = "gpt-3.5-turbo"
-        cost_rate = 0.002
         progress.progress(50)
 
         start_time = time.time()
@@ -101,62 +101,59 @@ def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
     # Hinweis, dass Agent A immer startet
-    st.info("Hinweis: Agent A startet immer die Diskussion mit deiner Eingabe.")
+    st.sidebar.info("Hinweis: Agent A startet immer die Diskussion mit deiner Eingabe.")
 
-    # Eingabe-Feld oder Datei-Upload für Idee/Businessplan/Thema
-    input_text = st.text_area("Deine Idee/Businessplan/Thema:" , height=150)
+    # Eingabe-Feld oder Datei-Upload für Idee/Businessplan/Thema im Hauptbereich
+    st.subheader("Deine Idee/Businessplan/Thema eingeben oder hochladen")
+    input_text = st.text_area("", height=150, key="input_text")
     uploaded_file = st.file_uploader(
-        "Oder lade eine Datei hoch (pdf, txt, docx):", type=["pdf", "txt", "docx"]
+        "Oder lade eine Datei hoch (pdf, txt, docx):", type=["pdf", "txt", "docx"], key="upload"
     )
-    # Inhalt aus Datei lesen, falls hochgeladen
-    if uploaded_file is not None:
+    if uploaded_file:
         try:
             raw = uploaded_file.read()
             if uploaded_file.type == "application/pdf":
-                # einfache PDF-Lesung als Text (bibliothek nötig)
                 import io, PyPDF2
                 reader = PyPDF2.PdfReader(io.BytesIO(raw))
-                text = "\n".join(p.extract_text() or "" for p in reader.pages)
+                text = "\n".join(page.extract_text() or "" for page in reader.pages)
             else:
                 text = raw.decode("utf-8", errors="ignore")
             input_text = text
         except Exception as e:
             st.error(f"Fehler beim Lesen der Datei: {e}")
 
+    # Modelle im Sidebar belassen
     model_list = ["gpt-3.5-turbo", "gpt-4"]
-    col1, col2 = st.columns(2)
-    with col1:
-        model_a = st.selectbox("Modell für Agent A", model_list, key="neu_a")
-    with col2:
-        model_b = st.selectbox("Modell für Agent B", model_list, key="neu_b")
+    model_a = st.sidebar.selectbox("Modell für Agent A", model_list, index=0)
+    model_b = st.sidebar.selectbox("Modell für Agent B", model_list, index=1)
 
-    st.markdown("### Prompt-Modus")
-    mode = st.radio("Eingabemodus", ["Getrennter Prompt für A und B", "Gleicher Prompt für beide"], key="modus")
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### Prompt-Modus")
+    mode = st.sidebar.radio("Eingabemodus", ["Getrennter Prompt für A und B", "Gleicher Prompt für beide"], index=0)
 
-    # Vordefinierten Prompt für Agent A aus input_text holen
-    st.session_state.setdefault("prompt_a", input_text)
+    # Prompt für Agent A initial setzen
+    st.session_state["prompt_a"] = input_text
     if mode == "Getrennter Prompt für A und B":
-        prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a")
-        prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b")
+        prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a_area")
+        prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b_area")
     else:
-        shared = st.text_area("Gleicher Prompt für beide", key="shared")
-        prompt_a = prompt_b = shared or st.session_state.get("prompt_a", "")
+        shared = st.text_area("Gleicher Prompt für beide", value=st.session_state.get("prompt_a", ""), key="shared_area")
+        prompt_a = prompt_b = shared
 
-    start = st.button("Diskussion starten", key="start_neu")
-    if start and prompt_a:
+    if st.button("Diskussion starten"):
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-
         response_a = debate_call(api_key, api_url, model_a, prompt_a)
         response_b = debate_call(api_key, api_url, model_b, prompt_b)
-
         st.markdown("### 🗣️ Antwort Agent A")
         st.write(response_a or "Keine Antwort")
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(response_b or "Keine Antwort")
 
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=1)
-if version == "Grundversion":
+# Version-Auswahl permanent in der Sidebar
+st.sidebar.markdown("---")
+stidebar_version = st.sidebar.selectbox("Version:", ["Grundversion", "Neu-Version"], index=1)
+if sidebar_version == "Grundversion":
     run_grundversion()
 else:
     run_neu()
