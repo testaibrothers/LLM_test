@@ -64,6 +64,7 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
         st.error(f"API-Fehler {resp.status_code}: {resp.text}")
         return None, selected_provider
 
+
 def generate_prompt_grok(final_prompt):
     groq_url = "https://api.groq.com/openai/v1/chat/completions"
     groq_key = st.secrets.get("groq_api_key", "")
