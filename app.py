@@ -86,7 +86,7 @@ def run_grundversion():
             progress.progress(100)
             return
 
-        # Preprocessing & Parsing
+        # Parsing
         raw = content.strip()
         if raw.startswith("```") and raw.endswith("```"):
             raw = "\n".join(raw.splitlines()[1:-1])
@@ -131,31 +131,39 @@ def run_neu():
     st.markdown("### Agenteinstellung")
     mode = st.radio("Einstellung:", ["Prompt", "Charakter"], key="mode_neu")
 
-    # Prompt-Einstellung
+    # Prompt-Konfiguration
     if mode == "Prompt":
-        # Prompt Generator als optionales Sidebar-Feature
+        # Prompt-Generator als optionales Sidebar-Feature
         with st.sidebar.expander("Prompt-Generator (optional)", expanded=False):
             st.markdown("Verwende ein Schlagwort, um einen professionellen Prompt zu generieren:")
             keyword = st.text_input("Schlagwort:", key="gen_kw")
             if st.button("Generiere Prompt", key="gen_btn") and keyword:
-                init_sys = "Du bist ein professioneller Prompt-Designer auf Expertenniveau. Frage nach dem Fachbereich."
-                gen_url = "https://api.groq.com/openai/v1/chat/completions"
-                gen_key = st.secrets.get("groq_api_key", "")
-                gen_payload = {
-                    "model": "mistral-7b",
-                    "messages": [
-                        {"role": "system", "content": init_sys},
-                        {"role": "user", "content": keyword}
-                    ],
-                    "temperature": 0.7
-                }
-                try:
-                    resp = requests.post(gen_url, headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"}, json=gen_payload)
-                    prompt_gen = resp.json()["choices"][0]["message"]["content"]
-                except:
-                    prompt_gen = "Fehler bei der Prompt-Generierung"
-                st.text_area("Generierter Prompt:", prompt_gen, height=150, key="gen_out")
-        # Eingabe der Agent-Prompts
+                # System-Prompt für den Generator
+                init_sys = (
+                    "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, "
+                    "präziser und anwendungsoptimierter Prompts. Frage zuerst nach dem Fachbereich oder der gewünschten Rolle."  
+                )
+                generator_url = "https://api.groq.com/openai/v1/chat/completions"
+                generator_key = st.secrets.get("groq_api_key", "")
+                # Kombiniere System- und User-Prompt
+                gen_input = init_sys + "
+" + keyword
+                # Generator-Call
+                prompt_gen, _ = debate_call(
+                    "Groq",
+                    generator_key,
+                    generator_url,
+                    "mistral-saba-24b",
+                    gen_input
+                )
+                # Ausgabe des generierten Prompts
+                st.text_area(
+                    "Generierter Prompt:",
+                    prompt_gen or "Fehler bei der Prompt-Generierung",
+                    height=150,
+                    key="gen_out"
+                )
+        # Agent-Prompts
         diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
         if diff:
             prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter..., desto besser.", key="pA_neu")
@@ -179,8 +187,10 @@ def run_neu():
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
-        combined_a = prompt_a + "\n" + question_neu
-        combined_b = prompt_b + "\n" + question_neu
+        combined_a = prompt_a + "
+" + question_neu
+        combined_b = prompt_b + "
+" + question_neu
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, combined_a)
