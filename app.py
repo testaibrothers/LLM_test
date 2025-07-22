@@ -129,14 +129,24 @@ def run_neu():
             input_text = parsed
             st.success("📎 Datei erfolgreich eingelesen.")
 
-        # Modelle auswählen und Diskussion-Starter inline
-    col1, col2, col3 = st.columns([3,3,2])
+            # Modelle auswählen mit inline Kreis-Schalter
+    col1, col2, col3, col4 = st.columns([3,1,3,1])
     model_a = col1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
-    model_b = col2.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
-    # Auswahl wer startet: keine Beschriftung, horizontale Radiobuttons
-    starter = col3.radio("", ["Agent A", "Agent B"], horizontal=True)
+    # Kreis-Button A: ausgefüllt wenn ausgewählt, leer sonst
+    if "starter" not in st.session_state:
+        st.session_state.starter = "Agent A"
+    a_filled = "◉" if st.session_state.starter == "Agent A" else "○"
+    if col2.button(a_filled, key="btnA"):
+        st.session_state.starter = "Agent A"
 
-    # Prompt-Modus für Agent B für Agent B für Agent B
+    model_b = col3.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
+    b_filled = "◉" if st.session_state.starter == "Agent B" else "○"
+    if col4.button(b_filled, key="btnB"):
+        st.session_state.starter = "Agent B"
+
+    st.caption("Wähle den ausgefüllten Kreis, um den startenden Agenten festzulegen.")
+
+    # Prompt-Modus für Agent B für Agent B für Agent B für Agent B
     mode = st.radio(
         "Prompt-Modus",
         ["Getrennter Prompt für B", "Gleicher Prompt für beide"],
