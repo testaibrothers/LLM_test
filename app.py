@@ -93,7 +93,7 @@ def run_grundversion():
                 "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
                 "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
-
+            
         progress.progress(30)
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
