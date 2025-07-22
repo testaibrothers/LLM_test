@@ -6,7 +6,7 @@ import requests
 import time
 import json
 
-# === Funktion für Single-Call Debatte mit Fallback für OpenAI-Quota ===
+# === API-Call mit Fallback ===
 def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
@@ -34,7 +34,7 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
         st.error(f"API-Fehler {code}: {resp.text}")
         return None, selected_provider
 
-# --- Grundversion: Vollständige Debatten-Engine ---
+# === Grundversion: Vollständige Debatten-Engine ===
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
     st.subheader("Single-Call Debatte mit Fallback & Live-Statistiken")
@@ -120,7 +120,7 @@ def run_grundversion():
         st.write(data.get('recommendation', '-'))
         progress.progress(100)
 
-# --- Neu-Version: erweiterter Prototyp ---
+# === Neu-Version: Prototyp mit Prompt- und Charakter-Einstellungen ===
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
@@ -138,26 +138,18 @@ def run_neu():
 
     # Prompt-Einstellung
     if mode == "Prompt":
-        # Prompt Generator rechts
-        gen_col, cfg_col = st.columns([1,1])
+        gen_col, cfg_col = st.columns([2,3])
         with gen_col:
             st.markdown("### Promterstellung")
             keyword = st.text_input("Schlagwort für Prompt-Generator:", key="gen_kw")
             if st.button("Prompt generieren", key="gen_btn") and keyword:
-                # Erster System-Setup-Call
-                init_sys = (
-    """
+                init_sys = """
 Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, präziser und anwendungsoptimierter Prompts für spezialisierte LLM-Modelle. Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln, die jeweils als fachspezifische Assistenten agieren sollen (z. B. als Fitness-Experte, Psychologe, Jurist etc.).
 
 Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rolle des zu erstellenden GPT-Prompts. Falls bereits ein Kontext existiert, fordere diesen aktiv ein.
-    """
-).
-"
-                    "Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rolle des zu erstellenden GPT-Prompts."
-                )
+"""
                 generator_url = "https://api.groq.com/openai/v1/chat/completions"
                 gen_key = st.secrets.get("groq_api_key", "")
-                # Configuring generator conversation
                 gen_payload = {
                     "model": "mistral-7b",
                     "messages": [
@@ -175,13 +167,12 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         with cfg_col:
             diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
             if diff:
-                prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="pA_neu")
-                prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="pB_neu")
+                prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt...", key="pA_neu")
+                prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt...", key="pB_neu")
             else:
-                shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt, desto besser das Ergebnis.", key="shared_same")
+                shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt...", key="shared_same")
                 prompt_a = shared
                 prompt_b = shared
-    # Charakter-Einstellung
     else:
         opts = ["Optimistisch","Pessimistisch","Kritisch"]
         c1, c2 = st.columns(2)
@@ -198,24 +189,16 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
+        # Agentenaufrufe
+        resp_a, _ = debate_call("OpenAI", st.secrets.get("openai_api_key",""), "https://api.openai.com/v1/chat/completions", agent_a_model, f"{prompt_a}\n{question_neu}")
+        resp_b, _ = debate_call("OpenAI", st.secrets.get("openai_api_key",""), "https://api.openai.com/v1/chat/completions", agent_b_model, f"{prompt_b}\n{question_neu}")
+        st.markdown("### 🗣️ Agent A Antwort")
+        st.write(resp_a)
+        st.markdown("### 🗣️ Agent B Antwort")
+        st.write(resp_b)
 
 # === Version Switch ===
 version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
-version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
 else:
