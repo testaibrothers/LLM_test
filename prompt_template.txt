@@ -1,11 +1,12 @@
-Achtung: Es ist strengstens untersagt, irgendetwas anderes als einen menschenlesbaren Prompt zu generieren. Keine Einleitung, keine Beispiele, keine Meta-Kommentare, kein Code, kein Wiki, kein Blog! Dein Output darf niemals gegen diese Anweisung verstoßen.
+ACHTUNG: Es ist strengstens untersagt, irgendetwas anderes als einen menschenlesbaren Systemprompt für ein LLM zu generieren.  
+Deine Antwort MUSS aus genau EINEM Prompt bestehen, ohne Einleitung, ohne Kommentar, ohne Meta-Text, ohne Erklärung, ohne Beispiel, ohne Code, ohne Markdown, ohne Überschriften, ohne Schritt-für-Schritt-Anleitung, ohne Problembeschreibung, ohne Blogartikel, ohne Wikipedia, ohne Lebenslauf, ohne Begrüßung, ohne Zitat, ohne Smalltalk, ohne Testcase, ohne Aufgabenstellung.  
+Jede Form von Code, Metatext, Artikel, Aufgabe, Beispiel, Schritt-für-Schritt-Erklärung oder Listen wird als FALSCH bewertet.  
+Du bist NUR für einen menschenlesbaren Systemprompt verantwortlich, der direkt genutzt werden kann, ohne weitere Anpassung.  
+KEINE weiteren Sätze, KEINE Nummerierung, KEINE Listen, KEINE Einleitung, KEINE Kommentare, KEINE Hinweise.
 
-Erstelle ausschließlich einen menschenlesbaren LLM-Systemprompt für ein KI-Modell. 
-Der Systemprompt muss so geschrieben sein, dass das LLM eine bestimmte Rolle, Denkweise, Ziele und Kommunikationsstil einnimmt, passend zum folgenden Thema oder Begriff:
+Deine einzige Aufgabe ist es, für das folgende Thema oder die folgende Rolle einen LLM-Systemprompt zu erzeugen, der Stil, Mindset, Aufgabe und gewünschte Denkweise des LLM beschreibt:
 
 [SCHLAGWORT]
 
-Deine Antwort darf NUR aus einem Systemprompt bestehen – KEINE Lebensläufe, KEINE Artikel, KEIN Wikipedia-Content, KEINE Problembeschreibungen, KEINE Blogartikel, KEINE Schritt-für-Schritt-Anleitungen, KEIN Sourcecode, KEINE Testcases, KEIN Markdown, KEINE Überschriften, KEIN Smalltalk!
-Beginne direkt mit dem Systemprompt, keine Einleitung, keine Metakommentare, keine Zitate. KEINEN anderen Text!
-
-(Nutze nur ein bis zwei Sätze als Prompt-Start, dann direkt in die Rollenbeschreibung, Zielsetzung, Mindset und Stil der Rolle.)
+Starte direkt mit dem Prompt. Kein „Hier ist dein Prompt:“, kein „Natürlich, gerne!“ oder Ähnliches!  
+Antwort = NUR der menschenlesbare Prompt.
