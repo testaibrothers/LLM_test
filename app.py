@@ -1,4 +1,4 @@
-# main.py – mit dauerhaft sichtbarem Prompt-Generator (links)
+# main.py – Kompaktvariante (alles in einer Datei, nur Prompt-Template extern)
 import streamlit as st
 import requests
 import time
@@ -91,14 +91,6 @@ def prompt_editor_ui():
     if st.sidebar.button("Prompt speichern"):
         save_prompt_template(edited)
         st.sidebar.success("Prompt gespeichert!")
-
-# IMMER SICHTBAR: Prompt-Generator (links in der Sidebar)
-st.sidebar.markdown("### Prompt-Generator (Grok)")
-schlagwort = st.sidebar.text_input("Schlagwort für den Prompt:", key="gen_kw_sb")
-if st.sidebar.button("Prompt generieren", key="gen_btn_sb") and schlagwort:
-    prompt_gen = build_final_prompt(schlagwort)
-    gen_response = generate_prompt_grok(prompt_gen)
-    st.sidebar.text_area("Generierter Prompt:", value=gen_response, height=150, key="gen_out_sb")
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 
