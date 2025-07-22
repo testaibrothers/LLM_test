@@ -1,5 +1,5 @@
 # Projekt: LLM-Debate Plattform (MVP)
-# (Patch 3 – Groq-Taming Extended)
+# Mit Version-Switch zwischen Grundversion (vollständige Debatten-Engine) und Neu-Version (Prototyp)
 
 import streamlit as st
 import requests
@@ -21,14 +21,10 @@ def extract_json_fallback(text):
 def adjust_prompt_for_provider(prompt: str, provider: str) -> str:
     if "Groq" in provider:
         return (
-            "Du bist ein präziser JSON-Antwortgenerator. Antworte nie mit Fließtext oder Code."
-            " Deine einzige Ausgabe ist folgendes JSON:
-"
-            "{\"optimistic\":\"...\", \"pessimistic\":\"...\", \"recommendation\":\"...\"}.\n"
-"
-            "Gib kein Markdown, keine Einleitung, keine Erklärungen aus. Nur reines, minimales JSON.\n"
-"
-            + prompt
+            "Du bist ein präziser JSON-Antwortgenerator. Antworte nie mit Fließtext oder Code. "
+            "Deine einzige Ausgabe ist folgendes JSON: "
+            "{\"optimistic\":\"...\", \"pessimistic\":\"...\", \"recommendation\":\"...\"}. "
+            "Gib kein Markdown, keine Einleitung, keine Erklärungen aus. Nur reines, minimales JSON.\n" + prompt
         )
     return prompt
 
