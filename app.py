@@ -27,7 +27,7 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
         "model": model,
         "messages": [{"role": "system", "content": prompt}],
         "temperature": 0.2,
-        "max_tokens": 200
+        "max_tokens": 2000
     }
     try:
         resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
@@ -147,20 +147,33 @@ def run_neu():
 
     start = st.button("Diskussion starten", key="start_discussion")
 
+    # Platz für Agentenantworten
+    response_a = response_b = None
     if start and idea:
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         prefix = f"Nutzeridee: {idea}\n"
         if start_agent == "Agent A":
-            full_prompt = prefix + prompt_a
-            response = debate_call(api_key, api_url, model_a, full_prompt)
-            st.markdown("### 🗣️ Antwort von Agent A")
-            st.write(response or "Keine Antwort")
+            full_prompt_a = prefix + prompt_a
+            response_a = debate_call(api_key, api_url, model_a, full_prompt_a)
         else:
-            full_prompt = prefix + prompt_b
-            response = debate_call(api_key, api_url, model_b, full_prompt)
-            st.markdown("### 🗣️ Antwort von Agent B")
-            st.write(response or "Keine Antwort")
+            full_prompt_b = prefix + prompt_b
+            response_b = debate_call(api_key, api_url, model_b, full_prompt_b)
+
+    # Ausgabe der Antworten
+    if response_a:
+        st.markdown("### 🗣️ Antwort von Agent A")
+        st.write(response_a)
+    if response_b:
+        st.markdown("### 🗣️ Antwort von Agent B")
+        st.write(response_b)
+
+    # Finale Konsens-Generierung
+    if response_a or response_b:
+        st.markdown("### 🏁 Finale Konsens")
+        combined = "Antwort Agent A:\n" + (response_a or "-") + "\n\nAntwort Agent B:\n" + (response_b or "-")
+        consensus = debate_call(api_key, api_url, "gpt-3.5-turbo", """Fasse basierend auf den folgenden beiden Antworten beider Agenten einen finale Konsens zusammen:\n""" + combined)
+        st.text_area("Finaler Konsens:", value=consensus or "Keine Antwort", height=200)
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
