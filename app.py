@@ -5,6 +5,28 @@ import streamlit as st
 import requests
 import time
 import json
+import re
+
+# === Hilfsfunktionen ===
+def extract_json_fallback(text):
+    optimistic = re.search(r'optimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
+    pessimistic = re.search(r'pessimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
+    recommendation = re.search(r'recommendation\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
+    return {
+        "optimistic": optimistic.group(1).strip() if optimistic else "-",
+        "pessimistic": pessimistic.group(1).strip() if pessimistic else "-",
+        "recommendation": recommendation.group(1).strip() if recommendation else "-"
+    }
+
+def adjust_prompt_for_provider(prompt: str, provider: str) -> str:
+    if "Groq" in provider:
+        return (
+            prompt
+            + "\n\nAntworte ausschließlich mit folgendem JSON-Schema:"
+            + " {\"optimistic\":\"...\", \"pessimistic\":\"...\", \"recommendation\":\"...\"}."
+            + " Gib keine Erklärungen, Codeblöcke oder Kommentare aus. Nur das JSON selbst."
+        )
+    return prompt
 
 # === API-Call mit Fallback ===
 def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
@@ -63,17 +85,19 @@ def run_grundversion():
 
         # Prompt-Aufbau
         if use_case == "Allgemeine Diskussion":
-            prompt = (
+            base_prompt = (
                 f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{question}'\n"
                 "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
                 "Antwort bitte im JSON-Format mit den Feldern: optimistic, pessimistic, recommendation. Nur JSON zurückgeben."
             )
         else:
-            prompt = (
+            base_prompt = (
                 f"Simuliere Debatte zum Use Case '{use_case}': Thema: '{question}'\n"
                 "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
                 "Antwort bitte im JSON-Format mit den Feldern: optimistic, pessimistic, recommendation. Nur JSON zurückgeben."
             )
+
+        prompt = adjust_prompt_for_provider(base_prompt, provider)
         progress.progress(30)
 
         # Provider-Konfiguration
@@ -107,8 +131,7 @@ def run_grundversion():
             data = json.loads(raw)
         except Exception:
             show_debug_output(raw)
-            progress.progress(100)
-            return
+            data = extract_json_fallback(raw)
 
         progress.progress(70)
 
