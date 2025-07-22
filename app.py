@@ -75,7 +75,6 @@ def run_grundversion():
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         model = "gpt-3.5-turbo"
-        cost_rate = 0.002
         progress.progress(50)
 
         start_time = time.time()
@@ -105,10 +104,35 @@ def run_grundversion():
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
-    # Textfeld für Nutzeridee/Businessplan/Thema
-    idea = st.text_area("Deine Idee / Businessplan / Thema:")
+    # Sidebar: Prompt-Generator
+    with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
+        keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
+        if st.button("Prompt generieren", key="gen_btn") and keyword:
+            try:
+                with open("promptgen_header.txt", "r", encoding="utf-8") as file:
+                    template = file.read().strip()
+                filled_prompt = template.replace("[SCHLAGWORT]", keyword)
+                api_url = "https://api.openai.com/v1/chat/completions"
+                api_key = st.secrets.get("openai_api_key", "")
+                response = debate_call(api_key, api_url, "gpt-3.5-turbo", filled_prompt)
+                if response:
+                    filled_prompt = response
+                else:
+                    filled_prompt = "[Fehler bei der Generierung]"
+            except FileNotFoundError:
+                filled_prompt = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
+            st.session_state["last_generated"] = filled_prompt
+        st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
+        cols = st.columns(2)
+        with cols[0]:
+            if st.button("In A übernehmen", key="toA"):
+                st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
+        with cols[1]:
+            if st.button("In B übernehmen", key="toB"):
+                st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
 
-    # Wahl des gestarteten Agenten
+    # Hauptbereich
+    idea = st.text_area("Deine Idee / Businessplan / Thema:")
     st.markdown("**Welcher Agent soll starten?**")
     start_agent = st.radio("Agent auswählen:", ["Agent A", "Agent B"], key="start_agent")
 
@@ -116,23 +140,25 @@ def run_neu():
     col1, col2 = st.columns(2)
     with col1:
         model_a = st.selectbox("Modell für Agent A", model_list, key="neu_a")
+        prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a")
     with col2:
         model_b = st.selectbox("Modell für Agent B", model_list, key="neu_b")
+        prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b")
 
     start = st.button("Diskussion starten", key="start_discussion")
 
     if start and idea:
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-        # Bestimmen, welcher Agent startet
+        prefix = f"Nutzeridee: {idea}\n"
         if start_agent == "Agent A":
-            prompt = f"Starte Diskussion mit Idee: {idea}\nAgent A: Optimistisch analysieren."
-            response = debate_call(api_key, api_url, model_a, prompt)
+            full_prompt = prefix + prompt_a
+            response = debate_call(api_key, api_url, model_a, full_prompt)
             st.markdown("### 🗣️ Antwort von Agent A")
             st.write(response or "Keine Antwort")
         else:
-            prompt = f"Starte Diskussion mit Idee: {idea}\nAgent B: Pessimistisch analysieren."
-            response = debate_call(api_key, api_url, model_b, prompt)
+            full_prompt = prefix + prompt_b
+            response = debate_call(api_key, api_url, model_b, full_prompt)
             st.markdown("### 🗣️ Antwort von Agent B")
             st.write(response or "Keine Antwort")
 
