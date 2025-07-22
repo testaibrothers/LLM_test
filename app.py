@@ -49,10 +49,9 @@ def run_grundversion():
         progress = st.progress(0)
         st.info("Debatte läuft...")
         progress.progress(10)
-        if use_case == "Allgemeine Diskussion":
-            prompt = f"Thema: '{question}'\nAgent A (optimistisch)\nAgent B (pessimistisch)\nBitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
-        else:
-            prompt = f"Thema: '{question}'\nAgent A analysiert Chancen.\nAgent B analysiert Risiken.\nBitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
+        prompt = (f"Thema: '{question}'\n" +
+                  ("Agent A (optimistisch)\nAgent B (pessimistisch)\n" if use_case == "Allgemeine Diskussion" else "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n") +
+                  "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation.")
         progress.progress(30)
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
@@ -74,59 +73,53 @@ def run_grundversion():
 # === Neu-Version ===
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
+    # Sidebar: Prompt-Generator & Einstellungen
+    with st.sidebar:
+        with st.expander("🧠 Prompt-Generator", expanded=False):
+            keyword = st.text_input("Schlagwort eingeben:")
+            if st.button("Prompt generieren") and keyword:
+                try:
+                    with open("promptgen_header.txt", "r", encoding="utf-8") as f:
+                        template = f.read().strip()
+                    gen_prompt = template.replace("[SCHLAGWORT]", keyword)
+                    gen_resp = debate_call(st.secrets.get("openai_api_key", ""),
+                                           "https://api.openai.com/v1/chat/completions",
+                                           "gpt-3.5-turbo", gen_prompt)
+                    st.session_state["prompt_a"] = gen_resp or ""
+                    st.session_state["prompt_b"] = gen_resp or ""
+                except FileNotFoundError:
+                    st.session_state["prompt_a"] = ""
+                    st.session_state["prompt_b"] = ""
+            st.text_area("Vorschlag", st.session_state.get("prompt_a", ""), height=100)
+        with st.expander("⚙️ Einstellungen", expanded=True):
+            st.selectbox("Welcher Agent startet?", ["Agent A", "Agent B"], key="start_agent")
+            max_rounds_opt = ["Endlos"] + list(range(1, 101))
+            st.selectbox("Maximale Runden", max_rounds_opt, key="max_rounds")
 
-    # Prompt-Generator Sidebar
-    with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
-        keyword = st.text_input("Schlagwort eingeben:")
-        if st.button("Prompt generieren") and keyword:
-            try:
-                with open("promptgen_header.txt", "r", encoding="utf-8") as f:
-                    template = f.read().strip()
-                gen_prompt = template.replace("[SCHLAGWORT]", keyword)
-                gen_resp = debate_call(st.secrets.get("openai_api_key", ""),
-                                       "https://api.openai.com/v1/chat/completions",
-                                       "gpt-3.5-turbo", gen_prompt)
-                st.session_state["prompt_a"] = gen_resp or ""
-                st.session_state["prompt_b"] = gen_resp or ""
-            except FileNotFoundError:
-                st.session_state["prompt_a"] = ""
-                st.session_state["prompt_b"] = ""
-        st.text_area("Vorschlag", st.session_state.get("prompt_a", ""), height=100)
+    # Main content
+    idea = st.text_area("Deine Idee / Businessplan / Thema:")
+    col1, col2 = st.columns(2)
+    with col1:
+        model_a = st.selectbox("Modell Agent A", ["gpt-3.5-turbo", "gpt-4"], key="neu_a")
+        prompt_a = st.text_area("Prompt Agent A", st.session_state.get("prompt_a", ""), height=120)
+    with col2:
+        model_b = st.selectbox("Modell Agent B", ["gpt-3.5-turbo", "gpt-4"], key="neu_b")
+        prompt_b = st.text_area("Prompt Agent B", st.session_state.get("prompt_b", ""), height=120)
 
-    # Hauptbereich & Einstellungsleiste rechts
-    main_col, settings_col = st.columns([3, 1])
-    with settings_col:
-        st.markdown("## Einstellungen")
-        start_agent = st.selectbox("Welcher Agent startet?", ["Agent A", "Agent B"], index=0)
-        max_rounds_opt = ["Endlos"] + list(range(1, 101))
-        max_rounds = st.selectbox("Maximale Runden", max_rounds_opt, index=0)
+    if st.button("Diskussion starten") and idea:
+        api_key = st.secrets.get("openai_api_key", "")
+        api_url = "https://api.openai.com/v1/chat/completions"
+        prefix = f"Nutzeridee: {idea}\n"
+        start_agent = st.session_state.get("start_agent", "Agent A")
+        if start_agent == "Agent A":
+            response = debate_call(api_key, api_url, model_a, prefix + prompt_a)
+        else:
+            response = debate_call(api_key, api_url, model_b, prefix + prompt_b)
+        st.markdown(f"### 🗣️ Antwort von {start_agent}")
+        st.write(response)
 
-    with main_col:
-        idea = st.text_area("Deine Idee / Businessplan / Thema:")
-        col1, col2 = st.columns(2)
-        with col1:
-            model_a = st.selectbox("Modell Agent A", ["gpt-3.5-turbo", "gpt-4"], key="neu_a")
-            prompt_a = st.text_area("Prompt Agent A", st.session_state.get("prompt_a", ""), height=120)
-        with col2:
-            model_b = st.selectbox("Modell Agent B", ["gpt-3.5-turbo", "gpt-4"], key="neu_b")
-            prompt_b = st.text_area("Prompt Agent B", st.session_state.get("prompt_b", ""), height=120)
-
-        if st.button("Diskussion starten") and idea:
-            api_key = st.secrets.get("openai_api_key", "")
-            api_url = "https://api.openai.com/v1/chat/completions"
-            prefix = f"Nutzeridee: {idea}\n"
-            # Diskussion mit begrenzten Runden (Logik noch nicht implementiert)
-            if start_agent == "Agent A":
-                response = debate_call(api_key, api_url, model_a, prefix + prompt_a)
-                st.markdown(f"### 🗣️ Antwort von {start_agent}")
-                st.write(response)
-            else:
-                response = debate_call(api_key, api_url, model_b, prefix + prompt_b)
-                st.markdown(f"### 🗣️ Antwort von {start_agent}")
-                st.write(response)
-
-        st.markdown("### 🏁 Finaler Konsens")
-        st.text_area("Hier steht der finale Konsens (kosmetisch):", value="", height=200)
+    st.markdown("### 🏁 Finaler Konsens")
+    st.text_area("Hier steht der finale Konsens (kosmetisch):", value="", height=200)
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
