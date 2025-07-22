@@ -83,37 +83,25 @@ def run_grundversion():
         progress = st.progress(0)
         st.info("Debatte läuft...")
         progress.progress(10)
-
-        if use_case == "Allgemeine Diskussion":
-            prompt = (
-                f"Thema: '{question}'\n"
-                "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-                "Bitte liefere ein JSON mit: optimistic, pessimistic, recommendation."
-            )
-        else:
-            prompt = (
-                f"Thema: '{question}'\n"
-                "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
-                "Bitte liefere ein JSON mit: optimistic, pessimistic, recommendation."
-            )
-
+        prompt = (
+            f"Thema: '{question}'\n"
+            f"Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
+            "Bitte liefere ein JSON mit: optimistic, pessimistic, recommendation."
+        )
         progress.progress(30)
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         model = "gpt-3.5-turbo"
         content = debate_call(api_key, api_url, model, prompt)
-        duration = time.time() - progress._ctx.start_time if hasattr(progress._ctx, 'start_time') else 0  # fallback
         if not content:
             st.error("Keine Antwort erhalten.")
             return
-
         try:
             data = json.loads(content)
         except json.JSONDecodeError:
             data = extract_json_fallback(content)
             show_debug_output(content)
-
-        st.markdown(f"**Dauer:** {duration:.2f}s")
+        st.markdown(f"**Dauer:** {content}")
         st.markdown("### 🤝 Optimistische Perspektive")
         st.write(data.get("optimistic", "-"))
         st.markdown("### ⚠️ Pessimistische Perspektive")
@@ -124,46 +112,39 @@ def run_grundversion():
 # === Neu-Version ===
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
-    st.info("Hinweis: Agent A startet immer die Diskussion basierend auf deinem Input.")
+    # Kleiner Hinweis über den Modellen
+    st.caption("Agent A startet immer die Diskussion basierend auf deinem Input.")
 
-    # Sidebar: Prompt-Generator
-    with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
-        keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
-        if st.button("Prompt generieren", key="gen_btn") and keyword:
-            try:
-                template = open("promptgen_header.txt", encoding="utf-8").read().strip()
-                filled_prompt = template.replace("[SCHLAGWORT]", keyword)
-                api_url = "https://api.openai.com/v1/chat/completions"
-                api_key = st.secrets.get("openai_api_key", "")
-                response = debate_call(api_key, api_url, "gpt-3.5-turbo", filled_prompt)
-                filled_prompt = response or "[Fehler bei der Generierung]"
-            except Exception:
-                filled_prompt = "[Promptdatei fehlt]"
-            st.session_state["last_generated"] = filled_prompt
-        st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
-        colA, colB = st.columns(2)
-        if colA.button("In A übernehmen", key="toA"):
-            st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
-        if colB.button("In B übernehmen", key="toB"):
-            st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
-
-    # Input: Text oder Datei
-    input_text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
-    uploaded = st.file_uploader("Oder lade eine Datei hoch (PDF, TXT, DOCX):", type=["pdf","txt","docx"])
+    # Input-Bereich mit Inline-Upload
+    col_text, col_file = st.columns([3,1])
+    with col_text:
+        input_text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
+    with col_file:
+        uploaded = st.file_uploader(
+            label="",
+            type=["pdf","txt","docx"],
+            help="📎 Datei hier hochladen"
+        )
     if uploaded:
         parsed = parse_uploaded_file(uploaded)
         if parsed:
             input_text = parsed
             st.success("Datei eingelesen.")
 
-    # Modelle
+    # Modell-Auswahl
     col1, col2 = st.columns(2)
-    model_a = col1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
-    model_b = col2.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
+    with col1:
+        model_a = st.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
+    with col2:
+        model_b = st.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
 
     # Prompt-Modus
     mode = st.radio("Prompt-Modus", ["Getrennter Prompt für B","Gleicher Prompt für beide"], key="modus")
-    prompt_b = st.text_area("Prompt für Agent B:" if mode=="Getrennter Prompt für B" else "Gemeinsamer Prompt:", height=100, key="prompt_b")
+    prompt_b = st.text_area(
+        label="Prompt für Agent B:" if mode=="Getrennter Prompt für B" else "Gemeinsamer Prompt:",
+        height=100,
+        key="prompt_b"
+    )
 
     if st.button("Diskussion starten", key="start_neu"):
         if not input_text:
@@ -171,8 +152,7 @@ def run_neu():
             return
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-        prompt_a = st.session_state.get("prompt_a", input_text)
-        resp_a = debate_call(api_key, api_url, model_a, prompt_a)
+        resp_a = debate_call(api_key, api_url, model_a, input_text)
         resp_b = debate_call(api_key, api_url, model_b, prompt_b)
         st.markdown("### 🗣️ Antwort Agent A")
         st.write(resp_a or "Keine Antwort.")
