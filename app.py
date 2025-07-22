@@ -156,6 +156,7 @@ else:
             schlagwort = st.text_input("Schlagwort für den Prompt:", key="gen_kw")
             if st.button("Generiere Prompt", key="gen_btn") and schlagwort:
                 prompt_gen = build_final_prompt(schlagwort)
+                st.text_area("Debug: Finaler Prompt an LLM", prompt_gen)
                 gen_response = generate_prompt_grok(prompt_gen)
                 st.text_area("Generierter Prompt:", value=gen_response, height=150, key="gen_out")
                 a, b = st.columns(2)
