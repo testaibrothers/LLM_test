@@ -47,9 +47,9 @@ def run_grundversion():
         st.info("Debatte läuft...")
         progress.progress(10)
         if use_case == "Allgemeine Diskussion":
-            prompt = f"Thema: '{question}'\nAgent A (optimistisch)\nAgent B (pessimistisch)\nBitte liefere als Ergebnis ein JSON mit: optimistic, pessimistic, recommendation."
+            prompt = f"Thema: '{question}'\nAgent A (optimistisch)\nAgent B (pessimistisch)\nBitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
         else:
-            prompt = f"Thema: '{question}'\nAgent A analysiert Chancen.\nAgent B analysiert Risiken.\nBitte liefere als Ergebnis ein JSON mit: optimistic, pessimistic, recommendation."
+            prompt = f"Thema: '{question}'\nAgent A analysiert Chancen.\nAgent B analysiert Risiken.\nBitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
         progress.progress(30)
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
@@ -111,6 +111,10 @@ def run_neu():
         if response:
             st.markdown(f"### 🗣️ Antwort von {start_agent}")
             st.write(response)
+
+    # Großes kosmetisches Ausgabefeld für finalen Konsens (ohne Logik)
+    st.markdown("### 🏁 Finaler Konsens")
+    st.text_area("Hier steht der finale Konsens:", value="", height=200)
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
