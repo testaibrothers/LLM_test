@@ -182,8 +182,6 @@ def run_neu():
 # Version-Auswahl
 version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
 if version == "Grundversion":
-version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
-if version == "Grundversion":
     run_grundversion()
 else:
     run_neu()
