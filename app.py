@@ -143,11 +143,11 @@ def run_neu():
             st.markdown("Verwende ein Schlagwort, um einen professionellen Prompt zu generieren:")
             keyword = st.text_input("Schlagwort:", key="gen_kw")
             if st.button("Generiere Prompt", key="gen_btn") and keyword:
-                init_sys = """
-Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, präziser und anwendungsoptimierter Prompts für spezialisierte LLM-Modelle. Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln, die jeweils als fachspezifische Assistenten agieren sollen (z. B. als Fitness-Experte, Psychologe, Jurist etc.).
+                init_sys = ("""
+Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, präziser und anwendungsoptimierter Prompts für spezialisierte LLM-Modelle. Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln, die jeweils als fachspezifische Assistenten agieren sollen (z. B. als Fitness-Experte, Psychologe, Jurist etc.).
 
 Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rolle des zu erstellenden GPT-Prompts. Falls bereits ein Kontext existiert, fordere diesen aktiv ein.
-"""
+""" )
                 generator_url = "https://api.groq.com/openai/v1/chat/completions"
                 gen_key = st.secrets.get("groq_api_key", "")
                 gen_payload = {
@@ -159,7 +159,9 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
                     "temperature": 0.7
                 }
                 try:
-                    resp = requests.post(generator_url, headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"}, json=gen_payload)
+                    resp = requests.post(generator_url,
+                                         headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"},
+                                         json=gen_payload)
                     prompt_gen = resp.json()["choices"][0]["message"]["content"]
                 except:
                     prompt_gen = "Fehler bei der Prompt-Generierung"
@@ -184,14 +186,14 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
-            # Diskussion starten & Ausführen
+    # Diskussion starten & Ausführen
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
         # Agentenaufrufe
-                combined_a = f"{prompt_a}
+        combined_a = f"{prompt_a}
 {question_neu}"
         combined_b = f"{prompt_b}
 {question_neu}"
@@ -199,13 +201,17 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         api_key = st.secrets.get("openai_api_key", "")
         resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, combined_a)
         resp_b, _ = debate_call("OpenAI", api_key, api_url, agent_b_model, combined_b)
-("OpenAI", api_key, api_url, agent_b_model, combined_b)
         st.markdown("### 🗣️ Agent A Antwort")
         st.write(resp_a)
         st.markdown("### 🗣️ Agent B Antwort")
         st.write(resp_b)
 
 # === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
