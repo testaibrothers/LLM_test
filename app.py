@@ -133,19 +133,27 @@ def run_neu():
     st.markdown("### Agenteinstellung")
     mode = st.radio("Einstellung:", ["Prompt", "Charakter"], key="mode_neu")
 
-        # Prompt-Konfiguration
+    # Initialize session state for prompts
+    if "pA_neu" not in st.session_state:
+        st.session_state["pA_neu"] = ""
+    if "pB_neu" not in st.session_state:
+        st.session_state["pB_neu"] = ""
+
     if mode == "Prompt":
-        # Prompt-Generator als optionales Sidebar-Feature
+        # Prompt-Generator in Sidebar
         with st.sidebar.expander("Prompt-Generator (optional)", expanded=False):
-            st.markdown("Verwende ein Schlagwort, um einen professionellen Prompt zu generieren:")
-            keyword = st.text_input("Schlagwort:", key="gen_kw")
+            st.markdown(
+                "**Dein System-Prompt:** Du bist ein professioneller Prompt-Designer auf Expertenniveau, "
+                "spezialisiert auf effiziente, präzise Prompts. Keine Rückfragen, liefere sofort den finalen Prompt."
+            )
+            keyword = st.text_input("Schlagwort für den Prompt:", key="gen_kw")
             if st.button("Generiere Prompt", key="gen_btn") and keyword:
                 init_sys = (
-    "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Erstellung effizienter, präziser Prompts ohne Rückfragen."
-)
+                    "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Erstellung effizienter, "
+                    "präziser Prompts ohne Rückfragen."
+                )
                 gen_url = "https://api.groq.com/openai/v1/chat/completions"
                 gen_key = st.secrets.get("groq_api_key", "")
-                # Direktes Aufrufen der Chat-Completion API mit System- und User-Message
                 gen_payload = {
                     "model": "mistral-saba-24b",
                     "messages": [
@@ -154,36 +162,36 @@ def run_neu():
                     ],
                     "temperature": 0.7
                 }
-                gen_resp = requests.post(gen_url, headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"}, json=gen_payload)
+                gen_resp = requests.post(
+                    gen_url,
+                    headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"},
+                    json=gen_payload
+                )
                 if gen_resp.status_code == 200:
-                    prompt_gen = gen_resp.json()["choices"][0]["message"]["content"]
+                    prompt_gen = gen_resp.json()["choices"][0]["message"]["content"].strip()
                 else:
                     st.error(f"Generator-API-Fehler {gen_resp.status_code}: {gen_resp.text}")
-                    prompt_gen = None
-                st.text_area(
-                    "Generierter Prompt:",
-                    prompt_gen or "Fehler bei der Prompt-Generierung",
-                    height=150,
-                    key="gen_out"
-                )
-                # Übernahmemechanismus für Agenten-Prompts
-                col_a, col_b = st.columns(2)
-                with col_a:
+                    prompt_gen = ""
+                # Ausgabefeld
+                st.text_area("Generierter Prompt:", value=prompt_gen, height=150, key="gen_out")
+                # Übernahme-Buttons
+                a, b = st.columns(2)
+                with a:
                     if st.button("In Prompt A übernehmen", key="toA"):
                         st.session_state["pA_neu"] = prompt_gen
-                with col_b:
+                with b:
                     if st.button("In Prompt B übernehmen", key="toB"):
                         st.session_state["pB_neu"] = prompt_gen
-        # Agent-Prompts
+        # Prompt-Felder
         diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
         if diff:
-            prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter..., desto besser.", key="pA_neu")
-            prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter..., desto besser.", key="pB_neu")
+            prompt_a = st.text_area("Prompt für Agent A", value=st.session_state["pA_neu"], key="pA_neu")
+            prompt_b = st.text_area("Prompt für Agent B", value=st.session_state["pB_neu"], key="pB_neu")
         else:
-            shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter..., desto besser.", key="shared_same")
-            prompt_a = shared
-            prompt_b = shared
+            shared = st.text_area("Gemeinsamer Prompt (optional)", value=st.session_state.get("shared_same", ""), key="shared_same")
+            prompt_a = prompt_b = shared
     else:
+        # Charakter-Einstellung
         opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
         with c1:
@@ -197,8 +205,10 @@ def run_neu():
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
-        combined_a = prompt_a + "\n" + question_neu
-        combined_b = prompt_b + "\n" + question_neu
+        combined_a = prompt_a + "
+" + question_neu
+        combined_b = prompt_b + "
+" + question_neu
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, combined_a)
@@ -209,6 +219,11 @@ def run_neu():
         st.write(resp_b)
 
 # === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
