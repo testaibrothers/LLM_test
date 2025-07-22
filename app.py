@@ -140,6 +140,31 @@ def run_neu():
     # Hinweis für Agent A
     st.info("Hinweis: Agent A startet immer die Diskussion basierend auf deinem Input.")
 
+    # Sidebar: Prompt-Generator
+    with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
+        keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
+        if st.button("Prompt generieren", key="gen_btn") and keyword:
+            try:
+                with open("promptgen_header.txt", "r", encoding="utf-8") as file:
+                    template = file.read().strip()
+                filled_prompt = template.replace("[SCHLAGWORT]", keyword)
+                api_url = "https://api.openai.com/v1/chat/completions"
+                api_key = st.secrets.get("openai_api_key", "")
+                model = "gpt-3.5-turbo"
+                response = debate_call(api_key, api_url, model, filled_prompt)
+                filled_prompt = response or "[Fehler bei der Generierung]"
+            except FileNotFoundError:
+                filled_prompt = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
+            st.session_state["last_generated"] = filled_prompt
+        st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
+        cols = st.columns(2)
+        with cols[0]:
+            if st.button("In A übernehmen", key="toA"):
+                st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
+        with cols[1]:
+            if st.button("In B übernehmen", key="toB"):
+                st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
+
     # Eingabe: Text oder Datei
     input_text = st.text_area(
         "Gib hier deine Idee, deinen Businessplan oder dein Thema ein:",
@@ -195,7 +220,9 @@ def run_neu():
         api_key = st.secrets.get("openai_api_key", "")
 
         # Agent A
-        response_a = debate_call(api_key, api_url, model_a, input_text)
+        # Wenn ein Prompt für A via Sidebar übernommen wurde, nutze diesen
+        prompt_a = st.session_state.get("prompt_a", input_text)
+        response_a = debate_call(api_key, api_url, model_a, prompt_a)
         # Agent B
         response_b = debate_call(api_key, api_url, model_b, prompt_b)
 
@@ -204,8 +231,7 @@ def run_neu():
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(response_b or "Keine Antwort von Agent B.")
 
-# Version-Auswahl
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+# Version-Auswahlersion = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
 else:
