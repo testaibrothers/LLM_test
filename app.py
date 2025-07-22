@@ -39,6 +39,7 @@ if version == "Grundversion":
         progress.progress(50)
         start_time = time.time()
         content, used = debate_call(provider, api_key, api_url, model, prompt)
+        st.text_area("RAW-Response vom LLM", content or "", height=150)
         duration = time.time() - start_time
         if not content:
             st.error("Keine Antwort erhalten.")
