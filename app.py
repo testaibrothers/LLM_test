@@ -165,7 +165,7 @@ def run_neu():
             model = model_a if agent == "Agent A" else model_b
             temp = st.session_state.temperature_a if agent == "Agent A" else st.session_state.temperature_b
             prompt = st.session_state.idea_text + "
-" + (prompt_a if agent == "Agent A" else prompt_b)
+" + (prompt_a if agent == "Agent A" else prompt_b)  # Zusammenführung der Idee und des jeweiligen Prompts
             resp = debate_call(api_key, api_url + "/chat/completions", model, prompt, temperature=temp)
             history.append((agent, resp))
             # Switch agent
@@ -193,7 +193,7 @@ def run_neu():
         st.write(last_resp)
         st.session_state.chat_history.extend([{"agent": a, "response": r} for a, r in history])
 
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)("Version:", ["Grundversion", "Neu-Version"], index=0)
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
 else:
