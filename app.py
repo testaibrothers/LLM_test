@@ -71,7 +71,7 @@ def generate_prompt_grok(final_prompt):
     payload = {
         "model": "mistral-saba-24b",
         "messages": [
-            {"role": "system", "content": "Schreibe nur das Wort: TEST12345"}
+            {"role": "system", "content": final_prompt}
     ],
     "temperature": 0.1
     }
