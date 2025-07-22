@@ -143,27 +143,25 @@ def run_neu():
                 init_sys = (
                     "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, "
                     "präziser und anwendungsoptimierter Prompts. Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere "
-                    "LLM-Instanzen zu entwickeln."
+                    "LLM-Instanzen zu entwickeln. Wenn bereit, frage nach dem Fachbereich oder der Rolle des zu erstellenden GPT-Prompts."  
                 )
-                generator_url = "https://api.groq.com/openai/v1/chat/completions"
-                generator_key = st.secrets.get("groq_api_key", "")
-                # Schritt 1: System-Kontext initialisieren
-                _, _ = debate_call(
-                    "Groq",
-                    generator_key,
-                    generator_url,
-                    "mistral-saba-24b",
-                    init_sys
-                )
-                # Schritt 2: Generierung basierend auf dem Schlagwort
-                prompt_gen, _ = debate_call(
-                    "Groq",
-                    generator_key,
-                    generator_url,
-                    "mistral-saba-24b",
-                    keyword
-                )
-                # Ausgabe des generierten Prompts
+                gen_url = "https://api.groq.com/openai/v1/chat/completions"
+                gen_key = st.secrets.get("groq_api_key", "")
+                # Direktes Aufrufen der Chat-Completion API mit System- und User-Message
+                gen_payload = {
+                    "model": "mistral-saba-24b",
+                    "messages": [
+                        {"role": "system", "content": init_sys},
+                        {"role": "user", "content": keyword}
+                    ],
+                    "temperature": 0.7
+                }
+                gen_resp = requests.post(gen_url, headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"}, json=gen_payload)
+                if gen_resp.status_code == 200:
+                    prompt_gen = gen_resp.json()["choices"][0]["message"]["content"]
+                else:
+                    st.error(f"Generator-API-Fehler {gen_resp.status_code}: {gen_resp.text}")
+                    prompt_gen = None
                 st.text_area(
                     "Generierter Prompt:",
                     prompt_gen or "Fehler bei der Prompt-Generierung",
