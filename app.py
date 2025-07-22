@@ -108,6 +108,7 @@ def run_neu():
             try:
                 with open("promptgen_header.txt", "r", encoding="utf-8") as file:
                 template = file.read().strip()
+
                 messages = [
                     {"role": "system", "content": template.replace("[SCHLAGWORT]", keyword)}
                 ]
