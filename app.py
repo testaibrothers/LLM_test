@@ -132,7 +132,7 @@ def run_neu():
     st.markdown("### Agenteinstellung")
     mode = st.radio("Einstellung:", ["Prompt", "Charakter"], key="mode_neu")
 
-    # Prompt-Konfiguration
+    # Prompt-Einstellung
     if mode == "Prompt":
         # Prompt Generator als optionales Sidebar-Feature
         with st.sidebar.expander("Prompt-Generator (optional)", expanded=False):
@@ -141,7 +141,8 @@ def run_neu():
             if st.button("Generiere Prompt", key="gen_btn") and keyword:
                 init_sys = (
                     "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, präziser und anwendungsoptimierter Prompts für spezialisierte LLM-Modelle. "
-                    "Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln, die jeweils als fachspezifische Assistenten agieren sollen (z. B. als Fitness-Experte, Psychologe, Jurist etc.).\n"
+                    "Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln, die jeweils als fachspezifische Assistenten agieren sollen (z. B. als Fitness-Experte, Psychologe, Jurist etc.).
+"
                     "Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rolle des zu erstellenden GPT-Prompts. Falls bereits ein Kontext existiert, fordere diesen aktiv ein."
                 )
                 gen_url = "https://api.groq.com/openai/v1/chat/completions"
@@ -155,22 +156,26 @@ def run_neu():
                     "temperature": 0.7
                 }
                 try:
-                    resp = requests.post(gen_url, headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"}, json=gen_payload)
+                    resp = requests.post(
+                        gen_url,
+                        headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"},
+                        json=gen_payload
+                    )
                     prompt_gen = resp.json()["choices"][0]["message"]["content"]
-                except:
+                except Exception:
                     prompt_gen = "Fehler bei der Prompt-Generierung"
                 st.text_area("Generierter Prompt:", prompt_gen, height=150, key="gen_out")
         # Eingabe der Agent-Prompts
         diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
-                if diff:
-            prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt...", key="pA_neu")
-            prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt...", key="pB_neu")
+        if diff:
+            prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt..., desto besser das Ergebnis.", key="pA_neu")
+            prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt..., desto besser das Ergebnis.", key="pB_neu")
         else:
-            shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt...", key="shared_same")
+            shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt..., desto besser das Ergebnis.", key="shared_same")
             prompt_a = shared
             prompt_b = shared
-    # Charakter-Konfiguration
-else:
+    else:
+        # Charakter-Einstellung
         opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
         with c1:
@@ -186,8 +191,10 @@ else:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
-        combined_a = prompt_a + "\n" + question_neu
-        combined_b = prompt_b + "\n" + question_neu
+        combined_a = prompt_a + "
+" + question_neu
+        combined_b = prompt_b + "
+" + question_neu
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, combined_a)
@@ -198,6 +205,12 @@ else:
         st.write(resp_b)
 
 # === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()
+
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
