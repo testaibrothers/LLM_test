@@ -1,12 +1,1 @@
-ACHTUNG: Es ist strengstens untersagt, irgendetwas anderes als einen menschenlesbaren Systemprompt für ein LLM zu generieren.  
-Deine Antwort MUSS aus genau EINEM Prompt bestehen, ohne Einleitung, ohne Kommentar, ohne Meta-Text, ohne Erklärung, ohne Beispiel, ohne Code, ohne Markdown, ohne Überschriften, ohne Schritt-für-Schritt-Anleitung, ohne Problembeschreibung, ohne Blogartikel, ohne Wikipedia, ohne Lebenslauf, ohne Begrüßung, ohne Zitat, ohne Smalltalk, ohne Testcase, ohne Aufgabenstellung.  
-Jede Form von Code, Metatext, Artikel, Aufgabe, Beispiel, Schritt-für-Schritt-Erklärung oder Listen wird als FALSCH bewertet.  
-Du bist NUR für einen menschenlesbaren Systemprompt verantwortlich, der direkt genutzt werden kann, ohne weitere Anpassung.  
-KEINE weiteren Sätze, KEINE Nummerierung, KEINE Listen, KEINE Einleitung, KEINE Kommentare, KEINE Hinweise.
-
-Deine einzige Aufgabe ist es, für das folgende Thema oder die folgende Rolle einen LLM-Systemprompt zu erzeugen, der Stil, Mindset, Aufgabe und gewünschte Denkweise des LLM beschreibt:
-
-[SCHLAGWORT]
-
-Starte direkt mit dem Prompt. Kein „Hier ist dein Prompt:“, kein „Natürlich, gerne!“ oder Ähnliches!  
-Antwort = NUR der menschenlesbare Prompt.
+wie geht es dir? 
