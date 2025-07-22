@@ -37,6 +37,11 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
         st.error(f"API-Fehler {resp.status_code}: {resp.text}")
         return None, selected_provider
 
+# === Debug-Fallback ===
+def show_debug_output(raw):
+    st.warning("Antwort nicht als JSON erkennbar. Roh-Antwort folgt:")
+    st.code(raw, language="text")
+
 # === Grundversion: Vollständige Debatten-Engine ===
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
@@ -61,13 +66,13 @@ def run_grundversion():
             prompt = (
                 f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{question}'\n"
                 "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-                "Antwort bitte exakt im JSON-Format mit den Feldern: optimistic, pessimistic, recommendation. Nur JSON zurückgeben."
+                "Antwort bitte im JSON-Format mit den Feldern: optimistic, pessimistic, recommendation. Nur JSON zurückgeben."
             )
         else:
             prompt = (
                 f"Simuliere Debatte zum Use Case '{use_case}': Thema: '{question}'\n"
                 "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
-                "Antwort bitte exakt im JSON-Format mit den Feldern: optimistic, pessimistic, recommendation. Nur JSON zurückgeben."
+                "Antwort bitte im JSON-Format mit den Feldern: optimistic, pessimistic, recommendation. Nur JSON zurückgeben."
             )
         progress.progress(30)
 
@@ -97,13 +102,14 @@ def run_grundversion():
         raw = content.strip()
         if raw.startswith("```") and raw.endswith("```"):
             raw = "\n".join(raw.splitlines()[1:-1])
+
         try:
             data = json.loads(raw)
-        except json.JSONDecodeError:
-            st.warning("Antwort nicht JSON. Roh-Antwort:")
-            st.text_area("Roh-Antwort", raw, height=400)
+        except Exception:
+            show_debug_output(raw)
             progress.progress(100)
             return
+
         progress.progress(70)
 
         # Ausgabe & Stats
@@ -121,3 +127,8 @@ def run_grundversion():
         st.markdown("### ✅ Empfehlung")
         st.write(data.get("recommendation", "-"))
         progress.progress(100)
+
+# === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion"], index=0)
+if version == "Grundversion":
+    run_grundversion()
