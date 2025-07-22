@@ -41,7 +41,6 @@ if "saved_topics" not in st.session_state:
     st.session_state.saved_topics = {}
 
 # === UI ===
-
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
     st.subheader("Single-Call Debatte mit OpenAI")
@@ -77,7 +76,7 @@ def run_grundversion():
         st.markdown("### ✅ Empfehlung")
         st.write(data.get("recommendation", "-"))
 
-
+# === Neu-Version ===
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
     # Sidebar: Prompt-Generator & Einstellungen
@@ -89,10 +88,9 @@ def run_neu():
                     with open("promptgen_header.txt", "r", encoding="utf-8") as f:
                         template = f.read().strip()
                     gen_prompt = template.replace("[SCHLAGWORT]", keyword)
-                    gen_resp = debate_call(
-                        st.secrets.get("openai_api_key", ""),
-                        "https://api.openai.com/v1/chat/completions",
-                        "gpt-3.5-turbo", gen_prompt)
+                    gen_resp = debate_call(st.secrets.get("openai_api_key", ""),
+                                           "https://api.openai.com/v1/chat/completions",
+                                           "gpt-3.5-turbo", gen_prompt)
                     st.session_state.prompt_a = gen_resp or ""
                     st.session_state.prompt_b = gen_resp or ""
                 except FileNotFoundError:
@@ -104,10 +102,8 @@ def run_neu():
             max_rounds_opt = ["Endlos"] + list(range(1, 101))
             st.selectbox("Maximale Runden", max_rounds_opt, key="max_rounds")
             # Kreativitätsregler für Agent A und B
-            temp_a = st.slider("Temperatur Agent A", min_value=0.0, max_value=1.0, value=0.7, step=0.05, key="temperature_a")
-            st.markdown("*Standard: 0.7 – ausgewogene Mischung aus Kreativität und Kohärenz*", unsafe_allow_html=True)
-            temp_b = st.slider("Temperatur Agent B", min_value=0.0, max_value=1.0, value=0.7, step=0.05, key="temperature_b")
-            st.markdown("*Standard: 0.7 – ausgewogene Mischung aus Kreativität und Kohärenz*", unsafe_allow_html=True)
+            temp_a = st.slider("Temperatur Agent A", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="temperature_a")
+            temp_b = st.slider("Temperatur Agent B", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="temperature_b")
             st.checkbox("Manuelle Bestätigung zwischen Runden?", key="manual_pause")
             st.text_input("Thema speichern unter", key="save_topic")
             if st.button("Thema speichern"):
