@@ -191,8 +191,25 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
         # Agentenaufrufe
+                # Agentenaufrufe
+        combined_a = f"{prompt_a}\n{question_neu}"
+        combined_b = f"{prompt_b}\n{question_neu}"
         resp_a, _ = debate_call(
-            "OpenAI", st.secrets.get("openai_api_key", ""), "https://api.openai.com/v1/chat/completions", agent_a_model, f"{prompt_a}
+            "OpenAI", st.secrets.get("openai_api_key", ""),
+            "https://api.openai.com/v1/chat/completions",
+            agent_a_model,
+            combined_a
+        )
+        resp_b, _ = debate_call(
+            "OpenAI", st.secrets.get("openai_api_key", ""),
+            "https://api.openai.com/v1/chat/completions",
+            agent_b_model,
+            combined_b
+        )
+        st.markdown("### 🗣️ Agent A Antwort")
+        st.write(resp_a)
+        st.markdown("### 🗣️ Agent B Antwort")
+        st.write(resp_b), "https://api.openai.com/v1/chat/completions", agent_a_model, f"{prompt_a}
 {question_neu}"
         )
         resp_b, _ = debate_call(
