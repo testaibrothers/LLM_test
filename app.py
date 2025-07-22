@@ -4,17 +4,6 @@ import requests
 import time
 import json
 import re
-from io import StringIO
-import docx
-
-# Versuche verschiedene PDF-Bibliotheken
-try:
-    from PyPDF2 import PdfReader
-except ImportError:
-    try:
-        from pypdf import PdfReader
-    except ImportError:
-        PdfReader = None
 
 # === JSON Parsing ===
 def extract_json_fallback(text):
@@ -86,6 +75,7 @@ def run_grundversion():
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         model = "gpt-3.5-turbo"
+        cost_rate = 0.002
         progress.progress(50)
 
         start_time = time.time()
@@ -105,7 +95,7 @@ def run_grundversion():
         st.markdown(f"**Dauer:** {duration:.2f}s")
         st.markdown("### 🤝 Optimistische Perspektive")
         st.write(data.get("optimistic", "-"))
-        st.markdown("### ⚠️ Pessimistische Perspektive")
+        st.markdown("###⚠️ Pessimistische Perspektive")
         st.write(data.get("pessimistic", "-"))
         st.markdown("### ✅ Empfehlung")
         st.write(data.get("recommendation", "-"))
@@ -115,38 +105,8 @@ def run_grundversion():
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
-    # Neues Eingabefeld für Idee / Businessplan oder Datei-Upload
-    st.markdown("### Deine Idee / Businessplan eingeben oder Datei hochladen")
-    text_input = st.text_area("Beschreibe deine Idee, deinen Businessplan oder Thema:")
-    uploaded_file = st.file_uploader("Oder lade eine Datei hoch (pdf, txt, docx)", type=["pdf", "txt", "docx"] )
-
-    content_input = ""
-    if uploaded_file:
-        file_type = uploaded_file.type
-        if file_type == "text/plain":
-            content_input = StringIO(uploaded_file.getvalue().decode("utf-8")).read()
-        elif file_type == "application/pdf":
-            if PdfReader is None:
-                st.error("PDF-Unterstützung nicht verfügbar. Bitte installiere PyPDF2 oder pypdf in requirements.txt.")
-            else:
-                reader = PdfReader(uploaded_file)
-                for page in reader.pages:
-                    text = getattr(page, 'extract_text', None)
-                    if callable(text):
-                        content_input += text() or ""
-                    else:
-                        content_input += page.get_text() or ""
-        elif file_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
-            doc = docx.Document(uploaded_file)
-            for para in doc.paragraphs:
-                content_input += para.text + "\n"
-        st.success(f"Datei eingelesen, Länge: {len(content_input)} Zeichen")
-    else:
-        content_input = text_input
-
-    if not content_input:
-        st.warning("Bitte gib eine Idee ein oder lade eine Datei hoch, um fortzufahren.")
-        return
+    # Neues Textfeld für Nutzeridee/Businessplan/Thema
+    idea = st.text_area("Deine Idee / Businessplan / Thema:")
 
     model_list = ["gpt-3.5-turbo", "gpt-4"]
     col1, col2 = st.columns(2)
@@ -158,9 +118,36 @@ def run_neu():
     st.markdown("### Prompt-Modus")
     mode = st.radio("Eingabemodus", ["Getrennter Prompt für A und B", "Gleicher Prompt für beide"], key="modus")
 
+    with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
+        keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
+        if st.button("Prompt generieren", key="gen_btn") and keyword:
+            try:
+                with open("promptgen_header.txt", "r", encoding="utf-8") as file:
+                    template = file.read().strip()
+                filled_prompt = template.replace("[SCHLAGWORT]", keyword)
+                api_url = "https://api.openai.com/v1/chat/completions"
+                api_key = st.secrets.get("openai_api_key", "")
+                model = "gpt-3.5-turbo"
+                response = debate_call(api_key, api_url, model, filled_prompt)
+                if response:
+                    filled_prompt = response
+                else:
+                    filled_prompt = "[Fehler bei der Generierung]"
+            except FileNotFoundError:
+                filled_prompt = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
+            st.session_state["last_generated"] = filled_prompt
+        st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
+        cols = st.columns(2)
+        with cols[0]:
+            if st.button("In A übernehmen", key="toA"):
+                st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
+        with cols[1]:
+            if st.button("In B übernehmen", key="toB"):
+                st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
+
     if mode == "Getrennter Prompt für A und B":
-        prompt_a = st.text_area("Prompt für Agent A", key="prompt_a")
-        prompt_b = st.text_area("Prompt für Agent B", key="prompt_b")
+        prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a")
+        prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b")
     else:
         shared = st.text_area("Gleicher Prompt für beide", key="shared")
         prompt_a = prompt_b = shared
@@ -170,19 +157,17 @@ def run_neu():
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
 
-        full_prompt_a = f"{prompt_a}\nInput:\n{content_input}"
-        full_prompt_b = f"{prompt_b}\nInput:\n{content_input}"
-
-        response_a = debate_call(api_key, api_url, model_a, full_prompt_a)
-        response_b = debate_call(api_key, api_url, model_b, full_prompt_b)
+        # Optional: Idee in Prompt integrieren
+        prompt_prefix = f"Nutzeridee: {idea}\n"
+        response_a = debate_call(api_key, api_url, model_a, prompt_prefix + prompt_a)
+        response_b = debate_call(api_key, api_url, model_b, prompt_prefix + prompt_b)
 
         st.markdown("### 🗣️ Antwort Agent A")
         st.write(response_a or "Keine Antwort")
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(response_b or "Keine Antwort")
 
-# App-Auswahl
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=1)
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
 else:
