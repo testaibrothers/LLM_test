@@ -133,15 +133,18 @@ def run_neu():
             input_text = parsed
             st.success("📎 Datei erfolgreich eingelesen.")
 
-    # Modell-Auswahl mit kleinem Hinweis
-    col1, col2 = st.columns(2)
+    # Modell-Auswahl mit Start-Knöpfen
+    col1, col2 = st.columns([1,1])
     with col1:
         model_a = st.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
+        start_a = st.button("Starte mit Agent A", key="start_a")
     with col2:
         model_b = st.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
-    st.caption("Wähle, welcher Agent die Diskussion startet.")
+        start_b = st.button("Starte mit Agent B", key="start_b")
 
-    # Prompt-Modus
+    st.caption("Wähle per Knopfdruck, welcher Agent die Diskussion initiiert.")
+
+    # Prompt-Modus für Agent B
     mode = st.radio("Prompt-Modus", ["Getrennter Prompt für B","Gleicher Prompt für beide"], key="modus")
     prompt_b = st.text_area(
         label="Prompt für Agent B:" if mode=="Getrennter Prompt für B" else "Gemeinsamer Prompt:",
@@ -149,24 +152,19 @@ def run_neu():
         key="prompt_b"
     )
 
-    # Start-Buttons für Agenten
-    btn_a, btn_b = st.columns(2)
-    start_a = btn_a.button("Starte mit Agent A")
-    start_b = btn_b.button("Starte mit Agent B")
-
-    if (start_a or start_b):
+    # Diskussion starten, sobald ein Start-Knopf gedrückt
+    if start_a or start_b:
         if not input_text:
             st.error("Bitte Input eingeben oder Datei hochladen.")
             return
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
 
-        # Agent A Prompt
+        # Prompts festlegen
         prompt_a = input_text
-        # Agent B Prompt
         prompt_b_final = prompt_b if prompt_b else input_text
 
-        # Diskussionsreihenfolge
+        # Reihenfolge basierend auf Button
         if start_a:
             resp_a = debate_call(api_key, api_url, model_a, prompt_a)
             resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
@@ -180,6 +178,11 @@ def run_neu():
         st.write(resp_b or "Keine Antwort.")
 
 # Version-Auswahl
+version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()
 version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
