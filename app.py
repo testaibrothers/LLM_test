@@ -122,12 +122,32 @@ def run_neu():
     model_a = col1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
     model_b = col2.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
 
-    mode = st.radio("Prompt-Modus",
+        mode = st.radio("Prompt-Modus",
                      ["Getrennter Prompt für B", "Gleicher Prompt für beide"])
-    prompt_b = st.text_area("Prompt für Agent B:" if mode == "Getrennter Prompt für B" else "Gemeinsamer Prompt:",
-                             height=100)
 
-    if st.button("Diskussion starten"):
+    # Prompt-Eingabe basierend auf Modus
+    if mode == "Getrennter Prompt für B":
+        prompt_a = text
+        prompt_b = st.text_area("Prompt für Agent B:", height=100, key="prompt_b")
+    else:
+        shared_prompt = st.text_area("Gemeinsamer Prompt für beide:", height=100, key="shared_prompt")
+        prompt_a = prompt_b = shared_prompt
+
+    # Diskussion starten
+    if st.button("Diskussion starten", key="start_neu"):
+        if not text:
+            st.error("Bitte Input eingeben oder Datei hochladen.")
+            return
+        api_key = st.secrets.get("openai_api_key", "")
+        api_url = "https://api.openai.com/v1/chat/completions"
+        # Agent A
+        resp_a = debate_call(api_key, api_url, model_a, prompt_a)
+        # Agent B
+        resp_b = debate_call(api_key, api_url, model_b, prompt_b)
+        st.markdown("### 🗣️ Antwort Agent A")
+        st.write(resp_a or "Keine Antwort.")
+        st.markdown("### 🗣️ Antwort Agent B")
+        st.write(resp_b or "Keine Antwort.")
         if not text:
             st.error("Bitte Input eingeben oder Datei hochladen.")
             return
