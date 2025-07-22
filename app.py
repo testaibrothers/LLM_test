@@ -129,15 +129,14 @@ def run_neu():
             input_text = parsed
             st.success("📎 Datei erfolgreich eingelesen.")
 
-    # Modelle auswählen mit diskussionsstart-Auswahl
-    col1, col2 = st.columns(2)
+        # Modelle auswählen und Diskussion-Starter inline
+    col1, col2, col3 = st.columns([3,3,2])
     model_a = col1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
     model_b = col2.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
+    # Auswahl wer startet: keine Beschriftung, horizontale Radiobuttons
+    starter = col3.radio("", ["Agent A", "Agent B"], horizontal=True)
 
-    # Kurze, kommentarlos platzierte Auswahl: wer startet
-    starter = st.radio("", ["Agent A", "Agent B"], horizontal=True)
-
-    # Prompt-Modus für Agent B für Agent B
+    # Prompt-Modus für Agent B für Agent B für Agent B
     mode = st.radio(
         "Prompt-Modus",
         ["Getrennter Prompt für B", "Gleicher Prompt für beide"],
