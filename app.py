@@ -132,11 +132,11 @@ def run_neu():
     with col2:
         agent_b_model = st.selectbox("Agent B LLM:", llm_list, key="neu_b")
 
-    # Agent Einstellung
+    # Agenteinstellung
     st.markdown("### Agenteinstellung")
-    mode = st.radio("Einstellung:", ["Prompt","Charakter"], key="mode_neu")
+    mode = st.radio("Einstellung:", ["Prompt", "Charakter"], key="mode_neu")
 
-    # Prompt-Einstellung
+    # Prompt-Konfiguration
     if mode == "Prompt":
         # Prompt Generator als optionales Sidebar-Feature
         with st.sidebar.expander("Prompt-Generator (optional)", expanded=False):
@@ -159,12 +159,12 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
                     "temperature": 0.7
                 }
                 try:
-                    resp = requests.post(generator_url, headers={"Authorization": f"Bearer {gen_key}","Content-Type":"application/json"}, json=gen_payload)
+                    resp = requests.post(generator_url, headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"}, json=gen_payload)
                     prompt_gen = resp.json()["choices"][0]["message"]["content"]
                 except:
                     prompt_gen = "Fehler bei der Prompt-Generierung"
                 st.text_area("Generierter Prompt:", prompt_gen, height=150, key="gen_out")
-        # Eingabe der Agent Prompts
+        # Eingabe der Agent-Prompts
         diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
         if diff:
             prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt...", key="pA_neu")
@@ -173,12 +173,9 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
             shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt...", key="shared_same")
             prompt_a = shared
             prompt_b = shared
+    # Charakter-Konfiguration
     else:
-                shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt...", key="shared_same")
-                prompt_a = shared
-                prompt_b = shared
-    else:
-        opts = ["Optimistisch","Pessimistisch","Kritisch"]
+        opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
         with c1:
             char_a = st.selectbox("Agent A:", opts, key="cA_neu")
@@ -187,21 +184,32 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
-    # Diskussion starten
+    # Diskussion starten & Ausführen
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
         # Agentenaufrufe
-        resp_a, _ = debate_call("OpenAI", st.secrets.get("openai_api_key",""), "https://api.openai.com/v1/chat/completions", agent_a_model, f"{prompt_a}\n{question_neu}")
-        resp_b, _ = debate_call("OpenAI", st.secrets.get("openai_api_key",""), "https://api.openai.com/v1/chat/completions", agent_b_model, f"{prompt_b}\n{question_neu}")
+        resp_a, _ = debate_call(
+            "OpenAI", st.secrets.get("openai_api_key", ""), "https://api.openai.com/v1/chat/completions", agent_a_model, f"{prompt_a}
+{question_neu}"
+        )
+        resp_b, _ = debate_call(
+            "OpenAI", st.secrets.get("openai_api_key", ""), "https://api.openai.com/v1/chat/completions", agent_b_model, f"{prompt_b}
+{question_neu}"
+        )
         st.markdown("### 🗣️ Agent A Antwort")
         st.write(resp_a)
         st.markdown("### 🗣️ Agent B Antwort")
         st.write(resp_b)
 
 # === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()
 version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
