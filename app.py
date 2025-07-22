@@ -5,8 +5,16 @@ import time
 import json
 import re
 from io import StringIO
-from pypdf import PdfReader
 import docx
+
+# Versuche verschiedene PDF-Bibliotheken
+try:
+    from PyPDF2 import PdfReader
+except ImportError:
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        PdfReader = None
 
 # === JSON Parsing ===
 def extract_json_fallback(text):
@@ -118,14 +126,21 @@ def run_neu():
         if file_type == "text/plain":
             content_input = StringIO(uploaded_file.getvalue().decode("utf-8")).read()
         elif file_type == "application/pdf":
-            reader = PdfReader(uploaded_file)
-            for page in reader.pages:
-                content_input += page.extract_text() or ""
+            if PdfReader is None:
+                st.error("PDF-Unterstützung nicht verfügbar. Bitte installiere PyPDF2 oder pypdf in requirements.txt.")
+            else:
+                reader = PdfReader(uploaded_file)
+                for page in reader.pages:
+                    text = getattr(page, 'extract_text', None)
+                    if callable(text):
+                        content_input += text() or ""
+                    else:
+                        content_input += page.get_text() or ""
         elif file_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
             doc = docx.Document(uploaded_file)
             for para in doc.paragraphs:
                 content_input += para.text + "\n"
-        st.success("Datei eingelesen, Länge: {} Zeichen".format(len(content_input)))
+        st.success(f"Datei eingelesen, Länge: {len(content_input)} Zeichen")
     else:
         content_input = text_input
 
@@ -155,7 +170,6 @@ def run_neu():
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
 
-        # In den Prompt die eingelesenen Inhalte integrieren
         full_prompt_a = f"{prompt_a}\nInput:\n{content_input}"
         full_prompt_b = f"{prompt_b}\nInput:\n{content_input}"
 
@@ -167,6 +181,7 @@ def run_neu():
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(response_b or "Keine Antwort")
 
+# App-Auswahl
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=1)
 if version == "Grundversion":
     run_grundversion()
