@@ -6,6 +6,11 @@ import time
 import json
 import re
 
+# === Zugriffsschutz ===
+password = st.text_input("🔒 Passwort eingeben:", type="password")
+if password != st.secrets.get("app_passwort", ""):
+    st.stop()
+
 # === JSON Parsing ===
 def extract_json_fallback(text):
     optimistic = re.search(r'optimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
@@ -43,7 +48,6 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
 
 # === UI ===
 def run_grundversion():
-    st.title("🤖 KI-Debattenplattform – Grundversion")
     st.title("🤖 KI-Debattenplattform – Grundversion")
     st.subheader("Single-Call Debatte mit OpenAI")
 
@@ -86,7 +90,22 @@ def run_grundversion():
         if not content:
             st.error("Keine Antwort erhalten.")
             progress.progress(100)
-        return
+            return
+
+        try:
+            data = json.loads(content)
+        except:
+            data = extract_json_fallback(content)
+            show_debug_output(content)
+
+        st.markdown(f"**Dauer:** {duration:.2f}s")
+        st.markdown("### 🤝 Optimistische Perspektive")
+        st.write(data.get("optimistic", "-"))
+        st.markdown("### ⚠️ Pessimistische Perspektive")
+        st.write(data.get("pessimistic", "-"))
+        st.markdown("### ✅ Empfehlung")
+        st.write(data.get("recommendation", "-"))
+        progress.progress(100)
 
 # === Neu-Version ===
 def run_neu():
@@ -102,37 +121,23 @@ def run_neu():
     st.markdown("### Prompt-Modus")
     mode = st.radio("Eingabemodus", ["Getrennter Prompt für A und B", "Gleicher Prompt für beide"], key="modus")
 
-    # Sidebar Prompt-Generator
     with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
         keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
         if st.button("Prompt generieren", key="gen_btn") and keyword:
             try:
                 with open("promptgen_header.txt", "r", encoding="utf-8") as file:
-                template = file.read().strip()
-
-                messages = [
-                    {"role": "system", "content": template.replace("[SCHLAGWORT]", keyword)}
-                ]
-                payload = {
-                    "model": "gpt-3.5-turbo",
-                    "messages": messages,
-                    "temperature": 0.2
-                }
-                headers = {
-                    "Authorization": f"Bearer {st.secrets.get('openai_api_key', '')}",
-                    "Content-Type": "application/json"
-                }
-                try:
-                    resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-                    if resp.status_code == 200:
-                        filled_prompt = resp.json()["choices"][0]["message"]["content"].strip()
-                    else:
-                        filled_prompt = f"[Fehler: {resp.status_code}] {resp.text}"
-                except Exception as e:
-                    filled_prompt = f"[Fehler beim API-Aufruf] {e}"
+                    template = file.read().strip()
+                filled_prompt = template.replace("[SCHLAGWORT]", keyword)
+                api_url = "https://api.openai.com/v1/chat/completions"
+                api_key = st.secrets.get("openai_api_key", "")
+                model = "gpt-3.5-turbo"
+                response = debate_call(api_key, api_url, model, filled_prompt)
+                if response:
+                    filled_prompt = response
+                else:
+                    filled_prompt = "[Fehler bei der Generierung]"
             except FileNotFoundError:
-                filled_prompt = f"[Promptdatei fehlt]
-Schlagwort: {keyword}"
+                filled_prompt = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
             st.session_state["last_generated"] = filled_prompt
         st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
         cols = st.columns(2)
@@ -143,7 +148,6 @@ Schlagwort: {keyword}"
             if st.button("In B übernehmen", key="toB"):
                 st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
 
-    # Promptfelder
     if mode == "Getrennter Prompt für A und B":
         prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a")
         prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b")
