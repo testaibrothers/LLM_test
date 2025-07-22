@@ -86,6 +86,27 @@ def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
     st.info("Hinweis: Agent A startet immer die Diskussion basierend auf deinem Input.")
 
+    # Sidebar: Prompt-Generator wieder einbinden
+    with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
+        keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
+        if st.button("Prompt generieren", key="gen_btn") and keyword:
+            try:
+                template = open("promptgen_header.txt", encoding="utf-8").read().strip()
+                filled_prompt = template.replace("[SCHLAGWORT]", keyword)
+                api_url = "https://api.openai.com/v1/chat/completions"
+                api_key = st.secrets.get("openai_api_key", "")
+                response = debate_call(api_key, api_url, "gpt-3.5-turbo", filled_prompt)
+                filled_prompt = response or "[Fehler bei der Generierung]"
+            except Exception:
+                filled_prompt = "[Promptdatei fehlt]"
+            st.session_state["last_generated"] = filled_prompt
+        st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
+        colA, colB = st.columns(2)
+        if colA.button("In A übernehmen", key="toA"):
+            st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
+        if colB.button("In B übernehmen", key="toB"):
+            st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
+
     # Texteingabe oder Datei
     text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
     upload = st.file_uploader("Oder Datei hochladen (PDF/TXT/DOCX):", type=["pdf","txt","docx"])
