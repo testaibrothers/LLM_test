@@ -120,69 +120,56 @@ def run_grundversion():
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
-    # Input-Bereich mit Datei-Upload-Plus
+    # Input-Bereich mit Datei-Upload
     input_text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
-    uploaded = st.file_uploader(
-        label="➕",
-        type=["pdf","txt","docx"],
-        help="Datei hier hochladen"
-    )
+    uploaded = st.file_uploader(label="➕", type=["pdf","txt","docx"], help="Datei hier hochladen")
     if uploaded:
         parsed = parse_uploaded_file(uploaded)
         if parsed:
             input_text = parsed
             st.success("📎 Datei erfolgreich eingelesen.")
 
-    # Modell-Auswahl mit Start-Knöpfen
-    col1, col2 = st.columns([1,1])
-    with col1:
-        model_a = st.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
-        start_a = st.button("Starte mit Agent A", key="start_a")
-    with col2:
-        model_b = st.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
-        start_b = st.button("Starte mit Agent B", key="start_b")
+    # Modell A Auswahl und Inline-Button
+    colA1, colA2 = st.columns([3,1])
+    model_a = colA1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
+    start_a = colA2.button("A", key="start_a")
 
-    st.caption("Wähle per Knopfdruck, welcher Agent die Diskussion initiiert.")
+    # Modell B Auswahl und Inline-Button
+    colB1, colB2 = st.columns([3,1])
+    model_b = colB1.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
+    start_b = colB2.button("B", key="start_b")
+
+    st.caption("Drücke 'A' oder 'B', um die Diskussion mit dem jeweiligen Agenten zu starten.")
 
     # Prompt-Modus für Agent B
     mode = st.radio("Prompt-Modus", ["Getrennter Prompt für B","Gleicher Prompt für beide"], key="modus")
     prompt_b = st.text_area(
-        label="Prompt für Agent B:" if mode=="Getrennter Prompt für B" else "Gemeinsamer Prompt:",
+        "Prompt für Agent B:" if mode=="Getrennter Prompt für B" else "Gemeinsamer Prompt:",
         height=100,
         key="prompt_b"
     )
 
-    # Diskussion starten, sobald ein Start-Knopf gedrückt
+    # Diskussion starten
     if start_a or start_b:
         if not input_text:
             st.error("Bitte Input eingeben oder Datei hochladen.")
             return
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-
-        # Prompts festlegen
         prompt_a = input_text
         prompt_b_final = prompt_b if prompt_b else input_text
-
-        # Reihenfolge basierend auf Button
         if start_a:
             resp_a = debate_call(api_key, api_url, model_a, prompt_a)
             resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
         else:
             resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
             resp_a = debate_call(api_key, api_url, model_a, prompt_a)
-
         st.markdown("### 🗣️ Antwort Agent A")
         st.write(resp_a or "Keine Antwort.")
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(resp_b or "Keine Antwort.")
 
 # Version-Auswahl
-version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
 version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
