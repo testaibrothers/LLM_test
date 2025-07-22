@@ -1,5 +1,5 @@
 # Projekt: LLM-Debate Plattform (MVP)
-# Mit Version-Switch zwischen Grundversion (vollständige Debatten-Engine) und Neu-Version (Prototyp)
+# (Patch 3 – Groq-Taming Extended)
 
 import streamlit as st
 import requests
@@ -21,10 +21,14 @@ def extract_json_fallback(text):
 def adjust_prompt_for_provider(prompt: str, provider: str) -> str:
     if "Groq" in provider:
         return (
-            prompt
-            + "\n\nAntworte bitte ausschließlich mit einem JSON-Objekt wie folgt (ohne Text davor oder danach):"
-            + " {\"optimistic\":\"<kurze optimistische Analyse>\", \"pessimistic\":\"<kurze pessimistische Analyse>\", \"recommendation\":\"<klare Empfehlung>\"}."
-            + " Achte darauf, dass dies reines JSON ist – keine Code-Tags, keine Markdown-Blöcke, keine Erklärungen oder Kommentare."
+            "Du bist ein präziser JSON-Antwortgenerator. Antworte nie mit Fließtext oder Code."
+            " Deine einzige Ausgabe ist folgendes JSON:
+"
+            "{\"optimistic\":\"...\", \"pessimistic\":\"...\", \"recommendation\":\"...\"}.\n"
+"
+            "Gib kein Markdown, keine Einleitung, keine Erklärungen aus. Nur reines, minimales JSON.\n"
+"
+            + prompt
         )
     return prompt
 
@@ -34,8 +38,8 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
     payload = {
         "model": model,
         "messages": [{"role": "system", "content": prompt}],
-        "temperature": 0.3,
-        "max_tokens": 300
+        "temperature": 0.2,
+        "max_tokens": 200
     }
     while True:
         try:
@@ -91,15 +95,15 @@ def run_grundversion():
         # Prompt-Aufbau
         if use_case == "Allgemeine Diskussion":
             base_prompt = (
-                f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{question}'\n"
+                f"Thema: '{question}'\n"
                 "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-                "Antwort bitte im JSON-Format mit den Feldern: optimistic, pessimistic, recommendation. Nur JSON zurückgeben."
+                "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
         else:
             base_prompt = (
-                f"Simuliere Debatte zum Use Case '{use_case}': Thema: '{question}'\n"
+                f"Thema: '{question}'\n"
                 "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
-                "Antwort bitte im JSON-Format mit den Feldern: optimistic, pessimistic, recommendation. Nur JSON zurückgeben."
+                "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
 
         prompt = adjust_prompt_for_provider(base_prompt, provider)
