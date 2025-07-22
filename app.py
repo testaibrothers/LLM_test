@@ -83,11 +83,18 @@ def run_grundversion():
         progress = st.progress(0)
         st.info("Debatte läuft...")
         progress.progress(10)
-        prompt = (
-            f"Thema: '{question}'\n"
-            f"Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
-            "Bitte liefere ein JSON mit: optimistic, pessimistic, recommendation."
-        )
+        if use_case == "Allgemeine Diskussion":
+            prompt = (
+                f"Thema: '{question}'\n"
+                "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
+                "Bitte liefere ein JSON mit: optimistic, pessimistic, recommendation."
+            )
+        else:
+            prompt = (
+                f"Thema: '{question}'\n"
+                "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
+                "Bitte liefere ein JSON mit: optimistic, pessimistic, recommendation."
+            )
         progress.progress(30)
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
@@ -101,7 +108,7 @@ def run_grundversion():
         except json.JSONDecodeError:
             data = extract_json_fallback(content)
             show_debug_output(content)
-        st.markdown(f"**Dauer:** {content}")
+        st.markdown(f"**Dauer:** {len(content)} Zeichen")
         st.markdown("### 🤝 Optimistische Perspektive")
         st.write(data.get("optimistic", "-"))
         st.markdown("### ⚠️ Pessimistische Perspektive")
@@ -112,31 +119,27 @@ def run_grundversion():
 # === Neu-Version ===
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
-    # Kleiner Hinweis über den Modellen
-    st.caption("Agent A startet immer die Diskussion basierend auf deinem Input.")
 
-    # Input-Bereich mit Inline-Upload
-    col_text, col_file = st.columns([3,1])
-    with col_text:
-        input_text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
-    with col_file:
-        uploaded = st.file_uploader(
-            label="",
-            type=["pdf","txt","docx"],
-            help="📎 Datei hier hochladen"
-        )
+    # Input-Bereich mit Datei-Upload-Plus
+    input_text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
+    uploaded = st.file_uploader(
+        label="➕",
+        type=["pdf","txt","docx"],
+        help="Datei hier hochladen"
+    )
     if uploaded:
         parsed = parse_uploaded_file(uploaded)
         if parsed:
             input_text = parsed
-            st.success("Datei eingelesen.")
+            st.success("📎 Datei erfolgreich eingelesen.")
 
-    # Modell-Auswahl
+    # Modell-Auswahl mit kleinem Hinweis
     col1, col2 = st.columns(2)
     with col1:
         model_a = st.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
     with col2:
         model_b = st.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
+    st.caption("Agent A startet immer basierend auf deinem Input.")
 
     # Prompt-Modus
     mode = st.radio("Prompt-Modus", ["Getrennter Prompt für B","Gleicher Prompt für beide"], key="modus")
