@@ -85,6 +85,7 @@ def run_grundversion():
         if not content:
             st.error("Keine Antwort erhalten.")
             progress.progress(100)
+        return
 
 # === Neu-Version ===
 def run_neu():
@@ -124,7 +125,6 @@ def run_neu():
         st.write(response_a or "Keine Antwort")
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(response_b or "Keine Antwort")
-            return
 
         raw = content.strip()
         if raw.startswith("```") and raw.endswith("```"):
