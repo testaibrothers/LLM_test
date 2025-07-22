@@ -173,7 +173,7 @@ def run_neu():
         with c2:
             char_b = st.selectbox("Agent B:", opts, key="cB_neu")
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
-        prompt_b = f"Du bist Agent B und agierst {char_b.lower()}.")
+        prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
     # Diskussion starten & Ausführen
     question_neu = st.text_area("Deine Frage:", key="q_neu")
