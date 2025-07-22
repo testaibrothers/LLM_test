@@ -164,13 +164,11 @@ def run_neu():
         diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
         if diff:
             prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt...", key="pA_neu")
-            prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt...", key="pB_neu")
-        } else {
+            prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt...", key="pB_neu")        else:
             shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt...", key="shared_same")
             prompt_a = shared
             prompt_b = shared
-        }
-    else:
+else:
         opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
         c1, c2 = st.columns(2)
         with c1:
