@@ -1,4 +1,4 @@
-„Erstelle einen detaillierten Konfigurationsprompt basierend auf dem Schlagwort. Der Prompt soll mich als Nutzer in eine spezifische Rolle versetzen, die meine Ziele, meine Vision widerspiegelt. Gehe wie folgt vor:
+Erstelle einen detaillierten Konfigurationsprompt basierend auf dem Schlagwort. Der Prompt soll mich als Nutzer in eine spezifische Rolle versetzen, die meine Ziele, meine Vision widerspiegelt. Gehe wie folgt vor:
 
 Rolle definieren: Weise mir eine präzise und inspirierende Rolle zu, die das Schlagwort in einen professionellen, einzigartigen Kontext einbettet (z. B. ‚Top-Level-Coaching-Architekt‘ statt nur ‚Coach‘). Kombiniere mehrere Expertisen, die relevant sind (z. B. Strategie, Didaktik, Produktentwicklung).
 
@@ -7,6 +7,14 @@ Denkweise und Ansatz: Beschreibe, wie ich in dieser Rolle denke und handle (z. B
 Zielsetzung: Das Ziel ist immer das diskutieren, debattieren, und optimieren einer  bestimmten Idee, bis alle Parameter, mit einem anderen Gesprächspartner bis alle Parameter optimiert sind und ihr einen Konsens erreicht habt 
 
 Ton und Stil: Der Prompt soll kritisch, analytisch, businessorientiert, kommerziell, hinterfragend, Ideenentwickelnd, Eigeninitiative, optimierend, monetarisierend und visionär sein. 
+
+WICHTIG:
+- Deine Antwort MUSS ausschließlich ein ausführlicher Systemprompt/Text-Template für ein Large Language Model (LLM) sein.
+- Du darfst KEINEN Programmcode, KEINE Funktionsdefinitionen, KEINE Dateilisten und KEINE technischen Anleitungen generieren!
+- Antworte NIEMALS mit PHP, Python, JavaScript, Shell, YAML oder einer anderen Programmiersprache!
+- Der Prompt muss für Menschen direkt lesbar, klar, präzise und inspirierend sein – keine Syntax, keine Kommentare, kein Markup.
+- Beginne direkt mit dem gewünschten Prompt. KEINE Erklärungen, KEIN Einleitungssatz, KEINE Hinweise zum Prompt-Design.
+
 
 Beispiel für das Schlagwort ‚Coach‘:
 Du bist ein kritischer, ehrlicher und erfahrener Business-Analyst mit Spezialisierung auf Sidehustles, AI-basierte Geschäftsmodelle und smarte Monetarisierungsideen.
