@@ -76,17 +76,16 @@ def run_grundversion():
         ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
         index=0
     )
-    question = st.text_area("Deine Fragestellung:")
-    start = st.button("Debatte starten")
+    start = st.button("💬 Diskussion starten")
 
-    if start and question:
+    if start and input_text:
         progress = st.progress(0)
         st.info("Debatte läuft...")
         progress.progress(10)
 
         if use_case == "Allgemeine Diskussion":
             prompt = (
-                f"Thema: '{question}'
+                f"Thema: '{input_text}'
 "
                 "Agent A (optimistisch)
 Agent B (pessimistisch)
