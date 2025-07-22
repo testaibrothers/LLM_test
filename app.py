@@ -1,4 +1,4 @@
-# main.py – Kompaktvariante (alles in einer Datei, nur Prompt-Template extern)
+# main.py – mit dauerhaft sichtbarem Prompt-Generator (links)
 import streamlit as st
 import requests
 import time
@@ -64,25 +64,21 @@ def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
         st.error(f"API-Fehler {resp.status_code}: {resp.text}")
         return None, selected_provider
 
-
 def generate_prompt_grok(final_prompt):
     groq_url = "https://api.groq.com/openai/v1/chat/completions"
     groq_key = st.secrets.get("groq_api_key", "")
     payload = {
         "model": "mistral-saba-24b",
         "messages": [
-            {"role": "system", "content": final_prompt}
+            {"role": "system", "content": final_prompt},
         ],
         "temperature": 0.7
     }
     resp = requests.post(groq_url, headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}, json=payload)
-    st.text_area("API-Response (raw)", resp.text)  # Debug-Ausgabe!
     if resp.status_code == 200:
         return resp.json()["choices"][0]["message"]["content"].strip()
     else:
         return f"Generator-API-Fehler {resp.status_code}: {resp.text}"
-
-
 
 # === Streamlit-UI ===
 st.set_page_config(page_title="🤖 LLM-Debattenplattform", layout="wide")
@@ -95,6 +91,14 @@ def prompt_editor_ui():
     if st.sidebar.button("Prompt speichern"):
         save_prompt_template(edited)
         st.sidebar.success("Prompt gespeichert!")
+
+# IMMER SICHTBAR: Prompt-Generator (links in der Sidebar)
+st.sidebar.markdown("### Prompt-Generator (Grok)")
+schlagwort = st.sidebar.text_input("Schlagwort für den Prompt:", key="gen_kw_sb")
+if st.sidebar.button("Prompt generieren", key="gen_btn_sb") and schlagwort:
+    prompt_gen = build_final_prompt(schlagwort)
+    gen_response = generate_prompt_grok(prompt_gen)
+    st.sidebar.text_area("Generierter Prompt:", value=gen_response, height=150, key="gen_out_sb")
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 
@@ -160,7 +164,6 @@ else:
             schlagwort = st.text_input("Schlagwort für den Prompt:", key="gen_kw")
             if st.button("Generiere Prompt", key="gen_btn") and schlagwort:
                 prompt_gen = build_final_prompt(schlagwort)
-                st.text_area("Debug: Finaler Prompt an LLM", prompt_gen)
                 gen_response = generate_prompt_grok(prompt_gen)
                 st.text_area("Generierter Prompt:", value=gen_response, height=150, key="gen_out")
                 a, b = st.columns(2)
