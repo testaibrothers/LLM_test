@@ -147,10 +147,10 @@ def run_neu():
     idea = st.text_area("Deine Idee / Businessplan / Thema:", key="idea_text")
     col1, col2 = st.columns(2)
     with col1:
-        model_a = st.selectbox("Modell Agent A", ["gpt-3.5-turbo", "gpt-4"], key="neu_a")
+        model_a = st.selectbox("Modell Agent A", ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4", "gpt-4-32k"], key="neu_a")
         prompt_a = st.text_area("Prompt Agent A", st.session_state.get("prompt_a", ""), height=120)
     with col2:
-        model_b = st.selectbox("Modell Agent B", ["gpt-3.5-turbo", "gpt-4"], key="neu_b")
+        model_b = st.selectbox("Modell Agent B", ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4", "gpt-4-32k"], key="neu_b")
         prompt_b = st.text_area("Prompt Agent B", st.session_state.get("prompt_b", ""), height=120)
 
     if st.button("Diskussion starten") and st.session_state.get("idea_text"):
