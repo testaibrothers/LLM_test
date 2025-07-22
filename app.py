@@ -70,9 +70,9 @@ def generate_prompt_grok(final_prompt):
     payload = {
         "model": "mistral-saba-24b",
         "messages": [
-            {"role": "system", "content": final_prompt},
-        ],
-        "temperature": 0.7
+            {"role": "system", "content": "Schreibe nur das Wort: TEST12345"}
+    ],
+    "temperature": 0.1
     }
     resp = requests.post(groq_url, headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}, json=payload)
     st.text_area("API-Response (raw)", resp.text)  # <- Debug-Ausgabe!
