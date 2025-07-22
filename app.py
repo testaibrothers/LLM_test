@@ -105,8 +105,12 @@ def run_grundversion():
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
-    # Neues Textfeld für Nutzeridee/Businessplan/Thema
+    # Textfeld für Nutzeridee/Businessplan/Thema
     idea = st.text_area("Deine Idee / Businessplan / Thema:")
+
+    # Wahl des gestarteten Agenten
+    st.markdown("**Welcher Agent soll starten?**")
+    start_agent = st.radio("Agent auswählen:", ["Agent A", "Agent B"], key="start_agent")
 
     model_list = ["gpt-3.5-turbo", "gpt-4"]
     col1, col2 = st.columns(2)
@@ -115,57 +119,22 @@ def run_neu():
     with col2:
         model_b = st.selectbox("Modell für Agent B", model_list, key="neu_b")
 
-    st.markdown("### Prompt-Modus")
-    mode = st.radio("Eingabemodus", ["Getrennter Prompt für A und B", "Gleicher Prompt für beide"], key="modus")
+    start = st.button("Diskussion starten", key="start_discussion")
 
-    with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
-        keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
-        if st.button("Prompt generieren", key="gen_btn") and keyword:
-            try:
-                with open("promptgen_header.txt", "r", encoding="utf-8") as file:
-                    template = file.read().strip()
-                filled_prompt = template.replace("[SCHLAGWORT]", keyword)
-                api_url = "https://api.openai.com/v1/chat/completions"
-                api_key = st.secrets.get("openai_api_key", "")
-                model = "gpt-3.5-turbo"
-                response = debate_call(api_key, api_url, model, filled_prompt)
-                if response:
-                    filled_prompt = response
-                else:
-                    filled_prompt = "[Fehler bei der Generierung]"
-            except FileNotFoundError:
-                filled_prompt = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
-            st.session_state["last_generated"] = filled_prompt
-        st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
-        cols = st.columns(2)
-        with cols[0]:
-            if st.button("In A übernehmen", key="toA"):
-                st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
-        with cols[1]:
-            if st.button("In B übernehmen", key="toB"):
-                st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
-
-    if mode == "Getrennter Prompt für A und B":
-        prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a")
-        prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b")
-    else:
-        shared = st.text_area("Gleicher Prompt für beide", key="shared")
-        prompt_a = prompt_b = shared
-
-    start = st.button("Diskussion starten", key="start_neu")
-    if start and (prompt_a and prompt_b):
+    if start and idea:
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-
-        # Optional: Idee in Prompt integrieren
-        prompt_prefix = f"Nutzeridee: {idea}\n"
-        response_a = debate_call(api_key, api_url, model_a, prompt_prefix + prompt_a)
-        response_b = debate_call(api_key, api_url, model_b, prompt_prefix + prompt_b)
-
-        st.markdown("### 🗣️ Antwort Agent A")
-        st.write(response_a or "Keine Antwort")
-        st.markdown("### 🗣️ Antwort Agent B")
-        st.write(response_b or "Keine Antwort")
+        # Bestimmen, welcher Agent startet
+        if start_agent == "Agent A":
+            prompt = f"Starte Diskussion mit Idee: {idea}\nAgent A: Optimistisch analysieren."
+            response = debate_call(api_key, api_url, model_a, prompt)
+            st.markdown("### 🗣️ Antwort von Agent A")
+            st.write(response or "Keine Antwort")
+        else:
+            prompt = f"Starte Diskussion mit Idee: {idea}\nAgent B: Pessimistisch analysieren."
+            response = debate_call(api_key, api_url, model_b, prompt)
+            st.markdown("### 🗣️ Antwort von Agent B")
+            st.write(response or "Keine Antwort")
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
