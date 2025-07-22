@@ -5,16 +5,6 @@ import time
 import json
 import re
 
-# Zusätzliche Bibliotheken für Datei-Parsing
-try:
-    import PyPDF2
-except ImportError:
-    PyPDF2 = None
-try:
-    import docx
-except ImportError:
-    docx = None
-
 # === JSON Parsing ===
 def extract_json_fallback(text):
     optimistic = re.search(r'optimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
@@ -47,27 +37,6 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
         st.error(f"API-Fehler oder Verbindungsproblem: {e}")
         return None
 
-# Helfer: Datei-Inhalt extrahieren
-def parse_uploaded_file(uploaded_file):
-    name = uploaded_file.name.lower()
-    data = ""
-    try:
-        if name.endswith('.txt'):
-            data = uploaded_file.read().decode('utf-8')
-        elif name.endswith('.pdf') and PyPDF2:
-            reader = PyPDF2.PdfReader(uploaded_file)
-            for page in reader.pages:
-                data += (page.extract_text() or '') + '\n'
-        elif name.endswith('.docx') and docx:
-            doc = docx.Document(uploaded_file)
-            for para in doc.paragraphs:
-                data += para.text + '\n'
-        else:
-            st.warning("Dateityp nicht unterstützt oder Parser fehlt.")
-    except Exception as e:
-        st.error(f"Fehler beim Einlesen der Datei: {e}")
-    return data.strip()
-
 # === Grundversion ===
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
@@ -80,9 +49,7 @@ def run_grundversion():
     )
     question = st.text_area("Deine Fragestellung:")
     if st.button("Debatte starten") and question:
-        progress = st.progress(0)
         st.info("Debatte läuft...")
-        progress.progress(10)
         if use_case == "Allgemeine Diskussion":
             prompt = (
                 f"Thema: '{question}'\n"
@@ -95,11 +62,9 @@ def run_grundversion():
                 "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
                 "Bitte liefere ein JSON mit: optimistic, pessimistic, recommendation."
             )
-        progress.progress(30)
-        api_url = "https://api.openai.com/v1/chat/completions"
-        api_key = st.secrets.get("openai_api_key", "")
-        model = "gpt-3.5-turbo"
-        content = debate_call(api_key, api_url, model, prompt)
+        content = debate_call(st.secrets.get("openai_api_key", ""),
+                              "https://api.openai.com/v1/chat/completions",
+                              "gpt-3.5-turbo", prompt)
         if not content:
             st.error("Keine Antwort erhalten.")
             return
@@ -108,10 +73,10 @@ def run_grundversion():
         except json.JSONDecodeError:
             data = extract_json_fallback(content)
             show_debug_output(content)
-        st.markdown(f"**Dauer:** {len(content)} Zeichen")
-        st.markdown("### 🤝 Optimistische Perspektive")
+        st.markdown(f"**Antwort:**")
+        st.markdown("### 🤝 Optimistisch")
         st.write(data.get("optimistic", "-"))
-        st.markdown("### ⚠️ Pessimistische Perspektive")
+        st.markdown("### ⚠️ Pessimistisch")
         st.write(data.get("pessimistic", "-"))
         st.markdown("### ✅ Empfehlung")
         st.write(data.get("recommendation", "-"))
@@ -119,68 +84,43 @@ def run_grundversion():
 # === Neu-Version ===
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
+    st.info("Hinweis: Agent A startet immer die Diskussion basierend auf deinem Input.")
 
-    # Input-Bereich mit Datei-Upload
-    input_text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
-    uploaded = st.file_uploader(label="➕ Datei hochladen", type=["pdf","txt","docx"], help="Datei hier hochladen")
-    if uploaded:
-        parsed = parse_uploaded_file(uploaded)
-        if parsed:
-            input_text = parsed
-            st.success("📎 Datei erfolgreich eingelesen.")
+    # Texteingabe oder Datei
+    text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
+    upload = st.file_uploader("Oder Datei hochladen (PDF/TXT/DOCX):", type=["pdf","txt","docx"])
+    if upload:
+        # einfache Text-Parser (kein DOCX/PDF in dieser Version)
+        try:
+            text = upload.read().decode('utf-8')
+            st.success("Datei eingelesen.")
+        except:
+            st.error("Fehler beim Einlesen der Datei.")
 
-            # Modelle auswählen mit inline Kreis-Schalter
-    col1, col2, col3, col4 = st.columns([3,1,3,1])
+    col1, col2 = st.columns(2)
     model_a = col1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
-    # Kreis-Button A: ausgefüllt wenn ausgewählt, leer sonst
-    if "starter" not in st.session_state:
-        st.session_state.starter = "Agent A"
-    a_filled = "◉" if st.session_state.starter == "Agent A" else "○"
-    if col2.button(a_filled, key="btnA"):
-        st.session_state.starter = "Agent A"
+    model_b = col2.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
 
-    model_b = col3.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
-    b_filled = "◉" if st.session_state.starter == "Agent B" else "○"
-    if col4.button(b_filled, key="btnB"):
-        st.session_state.starter = "Agent B"
+    mode = st.radio("Prompt-Modus",
+                     ["Getrennter Prompt für B", "Gleicher Prompt für beide"])
+    prompt_b = st.text_area("Prompt für Agent B:" if mode == "Getrennter Prompt für B" else "Gemeinsamer Prompt:",
+                             height=100)
 
-    st.caption("Wähle den ausgefüllten Kreis, um den startenden Agenten festzulegen.")
-
-    # Prompt-Modus für Agent B für Agent B für Agent B für Agent B
-    mode = st.radio(
-        "Prompt-Modus",
-        ["Getrennter Prompt für B", "Gleicher Prompt für beide"],
-        key="modus"
-    )
-    prompt_b = st.text_area(
-        "Prompt für Agent B:" if mode == "Getrennter Prompt für B" else "Gemeinsamer Prompt:",
-        height=100,
-        key="prompt_b"
-    )
-
-    # Diskussion starten
-    if st.button("Diskussion starten", key="start_neu"):
-        if not input_text:
+    if st.button("Diskussion starten"):
+        if not text:
             st.error("Bitte Input eingeben oder Datei hochladen.")
             return
-        api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-        prompt_a = input_text
-        prompt_b_final = prompt_b if prompt_b else input_text
-
-        if starter == "Agent A":
-            resp_a = debate_call(api_key, api_url, model_a, prompt_a)
-            resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
-        else:
-            resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
-            resp_a = debate_call(api_key, api_url, model_a, prompt_a)
-
+        api_url = "https://api.openai.com/v1/chat/completions"
+        resp_a = debate_call(api_key, api_url, model_a, text)
+        resp_b = debate_call(api_key, api_url, model_b, prompt_b or text)
         st.markdown("### 🗣️ Antwort Agent A")
         st.write(resp_a or "Keine Antwort.")
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(resp_b or "Keine Antwort.")
 
 # Version-Auswahl
+en
 version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
