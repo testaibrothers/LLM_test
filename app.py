@@ -5,10 +5,7 @@ import time
 import json
 import re
 
-# === Zugriffsschutz ===
-password = st.text_input("🔒 Passwort eingeben:", type="password")
-if password != st.secrets.get("app_passwort", ""):
-    st.stop()
+
 
 # === JSON Parsing ===
 def extract_json_fallback(text):
