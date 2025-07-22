@@ -88,47 +88,41 @@ def run_neu():
                     with open("promptgen_header.txt", "r", encoding="utf-8") as f:
                         template = f.read().strip()
                     gen_prompt = template.replace("[SCHLAGWORT]", keyword)
-                    gen_resp = debate_call(st.secrets.get("openai_api_key", ""),
-                                           "https://api.openai.com/v1/chat/completions",
-                                           "gpt-3.5-turbo", gen_prompt)
+                    gen_resp = debate_call(
+                        st.secrets.get("openai_api_key", ""),
+                        "https://api.openai.com/v1/chat/completions",
+                        "gpt-3.5-turbo", gen_prompt
+                    )
                     st.session_state.prompt_a = gen_resp or ""
                     st.session_state.prompt_b = gen_resp or ""
                 except FileNotFoundError:
                     st.session_state.prompt_a = ""
                     st.session_state.prompt_b = ""
             st.text_area("Vorschlag", st.session_state.get("prompt_a", ""), height=100)
-                with st.expander("⚙️ Einstellungen", expanded=True):
+        with st.expander("⚙️ Einstellungen", expanded=True):
             st.selectbox(
-                "Welcher Agent startet?", 
-                ["Agent A", "Agent B"], 
-                key="start_agent", 
+                "Welcher Agent startet?", ["Agent A", "Agent B"], key="start_agent",
                 help="Wählt aus, welcher Agent zuerst mit der Diskussion beginnt."
             )
             max_rounds_opt = ["Endlos"] + list(range(1, 101))
             st.selectbox(
-                "Maximale Runden", 
-                max_rounds_opt, 
-                key="max_rounds", 
+                "Maximale Runden", max_rounds_opt, key="max_rounds",
                 help="Legt die maximale Anzahl hin- und her Nachrichten fest. 'Endlos' bedeutet keine Begrenzung."
             )
             temp_a = st.slider(
-                "Temperatur Agent A", 
-                min_value=0.0, max_value=1.0, value=0.7, step=0.05, key="temperature_a",
+                "Temperatur Agent A", 0.0, 1.0, 0.7, 0.05, key="temperature_a",
                 help="Steuert die Kreativität: 0.0 sehr deterministisch, 1.0 sehr variabel."
             )
             temp_b = st.slider(
-                "Temperatur Agent B", 
-                min_value=0.0, max_value=1.0, value=0.7, step=0.05, key="temperature_b",
+                "Temperatur Agent B", 0.0, 1.0, 0.7, 0.05, key="temperature_b",
                 help="Steuert die Kreativität: 0.0 sehr deterministisch, 1.0 sehr variabel."
             )
             st.checkbox(
-                "Manuelle Bestätigung zwischen Runden?", 
-                key="manual_pause", 
+                "Manuelle Bestätigung zwischen Runden?", key="manual_pause",
                 help="Erfordert nach jeder Runde eine Bestätigung bevor es weitergeht."
             )
             st.text_input(
-                "Thema speichern unter", 
-                key="save_topic", 
+                "Thema speichern unter", key="save_topic",
                 help="Gib einen Namen ein, unter dem die aktuelle Idee gespeichert wird."
             )
             if st.button("Thema speichern"):
@@ -138,18 +132,17 @@ def run_neu():
             topic_list = list(st.session_state.saved_topics.keys())
             if topic_list:
                 choice = st.selectbox(
-                    "Gespeicherte Themen laden", 
-                    topic_list, 
-                    key="load_topic",
+                    "Gespeicherte Themen laden", topic_list, key="load_topic",
                     help="Lädt ein zuvor gespeichertes Thema."
                 )
                 if st.button("Laden"):
                     st.session_state.idea_text = st.session_state.saved_topics.get(choice, "")
             st.download_button(
-                "Sitzungsprotokoll herunterladen", 
-                data=json.dumps(st.session_state.chat_history), 
-                file_name="session.json",
+                "Sitzungsprotokoll herunterladen", data=json.dumps(st.session_state.chat_history), file_name="session.json",
                 help="Lädt das Protokoll der aktuellen Sitzung als JSON-Datei herunter."
+            )
+
+    # Main content
     st.text(" ")  # Abstand zum Sidebar
     idea = st.text_area("Deine Idee / Businessplan / Thema:", key="idea_text")
     col1, col2 = st.columns(2)
