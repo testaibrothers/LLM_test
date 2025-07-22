@@ -44,7 +44,6 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
     except requests.exceptions.RequestException as e:
         st.error(f"Verbindungsfehler: {e}")
         return None
-        return None
 
 # === UI ===
 def run_grundversion():
