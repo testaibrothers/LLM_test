@@ -1,16 +1,86 @@
-# LLM-Debate Plattform (MVP) – Canvas Version (Modular mit externem Prompt)
-# main.py – Streamlit-UI
-# api.py – API-Calls, Prompt-Generator
-# utils.py – Hilfsfunktionen
-# config.py – Konstanten
-# prompt_template.txt – Prompt-Vorlage mit [SCHLAGWORT] als Platzhalter
-
-# main.py
+# main.py – Kompaktvariante (alles in einer Datei, nur Prompt-Template extern)
 import streamlit as st
-from api import debate_call, generate_prompt_grok
-from config import PROVIDERS, USE_CASES, LLM_LIST
-from utils import parse_json_response, load_prompt_template, save_prompt_template, build_final_prompt
+import requests
+import time
+import json
 
+# === Konfiguration ===
+PROVIDERS = ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"]
+USE_CASES = ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"]
+LLM_LIST = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-saba-24b", "llama-2-13b"]
+
+def get_api_conf(provider):
+    if provider.startswith("OpenAI"):
+        return "https://api.openai.com/v1/chat/completions", st.secrets.get("openai_api_key", ""), "gpt-3.5-turbo", 0.002
+    else:
+        return "https://api.groq.com/openai/v1/chat/completions", st.secrets.get("groq_api_key", ""), "mistral-saba-24b", 0.0
+
+# === Prompt-Handling und Hilfsfunktionen ===
+def load_prompt_template(path="prompt_template.txt"):
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def save_prompt_template(content, path="prompt_template.txt"):
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+def build_final_prompt(user_keyword, path="prompt_template.txt"):
+    template = load_prompt_template(path)
+    return template.replace("[SCHLAGWORT]", user_keyword)
+
+def parse_json_response(content):
+    raw = content.strip()
+    if raw.startswith("```") and raw.endswith("```"):
+        raw = "\n".join(raw.splitlines()[1:-1])
+    try:
+        data = json.loads(raw)
+    except:
+        data = {}
+    return data, raw
+
+# === API-Calls ===
+def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": 0.7}
+    while True:
+        resp = requests.post(api_url, headers=headers, json=payload)
+        if resp.status_code == 200:
+            return resp.json()["choices"][0]["message"]["content"], selected_provider
+        if resp.status_code == 429:
+            error = resp.json().get("error", {})
+            if selected_provider.startswith("OpenAI") and error.get("code") == "insufficient_quota":
+                st.warning("OpenAI-Quota erschöpft, wechsle automatisch zu Groq...")
+                return debate_call(
+                    "Groq (Mistral-saba-24b)",
+                    st.secrets.get("groq_api_key", ""),
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    "mistral-saba-24b",
+                    prompt,
+                    timeout
+                )
+            st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
+            time.sleep(timeout)
+            continue
+        st.error(f"API-Fehler {resp.status_code}: {resp.text}")
+        return None, selected_provider
+
+def generate_prompt_grok(final_prompt):
+    groq_url = "https://api.groq.com/openai/v1/chat/completions"
+    groq_key = st.secrets.get("groq_api_key", "")
+    payload = {
+        "model": "mistral-saba-24b",
+        "messages": [
+            {"role": "system", "content": final_prompt},
+        ],
+        "temperature": 0.7
+    }
+    resp = requests.post(groq_url, headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}, json=payload)
+    if resp.status_code == 200:
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    else:
+        return f"Generator-API-Fehler {resp.status_code}: {resp.text}"
+
+# === Streamlit-UI ===
 st.set_page_config(page_title="🤖 LLM-Debattenplattform", layout="wide")
 
 # Editierbares Prompt-Template (Admin-Paneel, optional)
@@ -22,10 +92,8 @@ def prompt_editor_ui():
         save_prompt_template(edited)
         st.sidebar.success("Prompt gespeichert!")
 
-# Version-Switch
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 
-# Optional: Prompt-Editor sichtbar machen
 if st.sidebar.checkbox("Prompt bearbeiten (Admin)", value=False):
     prompt_editor_ui()
 
@@ -40,16 +108,13 @@ if version == "Grundversion":
         progress = st.progress(0)
         st.info("Debatte läuft...")
         progress.progress(10)
-        # Prompt-Aufbau
         if use_case == "Allgemeine Diskussion":
             prompt = f"Simuliere eine Debatte zwischen zwei KI-Agenten zum Thema: '{question}'\nAgent A (optimistisch)\nAgent B (pessimistisch)\nAntwort als JSON mit Feldern: optimistic, pessimistic, recommendation"
         else:
             prompt = f"Simuliere Debatte zum Use Case '{use_case}': Thema: '{question}'\nAgent A analysiert Chancen.\nAgent B analysiert Risiken.\nAntwort als JSON: optimistic, pessimistic, recommendation"
         progress.progress(30)
-        from config import get_api_conf
         api_url, api_key, model, cost_rate = get_api_conf(provider)
         progress.progress(50)
-        import time
         start_time = time.time()
         content, used = debate_call(provider, api_key, api_url, model, prompt)
         duration = time.time() - start_time
@@ -121,7 +186,6 @@ else:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         combined_a = prompt_a + "\n" + question_neu
         combined_b = prompt_b + "\n" + question_neu
-        from config import get_api_conf
         api_url, api_key, _, _ = get_api_conf("OpenAI (gpt-3.5-turbo)")
         resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, combined_a)
         resp_b, _ = debate_call("OpenAI", api_key, api_url, agent_b_model, combined_b)
@@ -129,90 +193,3 @@ else:
         st.write(resp_a)
         st.markdown("### 🗣️ Agent B Antwort")
         st.write(resp_b)
-
-# === utils.py ===
-# Hilfsfunktionen für Prompt-Handling und Parsing
-
-def load_prompt_template(path="prompt_template.txt"):
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
-
-def save_prompt_template(content, path="prompt_template.txt"):
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
-
-def build_final_prompt(user_keyword, path="prompt_template.txt"):
-    template = load_prompt_template(path)
-    return template.replace("[SCHLAGWORT]", user_keyword)
-
-def parse_json_response(content):
-    import json
-    raw = content.strip()
-    if raw.startswith("```") and raw.endswith("```"):
-        raw = "\n".join(raw.splitlines()[1:-1])
-    try:
-        data = json.loads(raw)
-    except:
-        data = {}
-    return data, raw
-
-# === api.py ===
-# API-Call-Logik & Prompt-Generator (Groq)
-import requests
-import streamlit as st
-
-def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": 0.7}
-    while True:
-        resp = requests.post(api_url, headers=headers, json=payload)
-        if resp.status_code == 200:
-            return resp.json()["choices"][0]["message"]["content"], selected_provider
-        if resp.status_code == 429:
-            error = resp.json().get("error", {})
-            if selected_provider.startswith("OpenAI") and error.get("code") == "insufficient_quota":
-                st.warning("OpenAI-Quota erschöpft, wechsle automatisch zu Groq...")
-                return debate_call(
-                    "Groq (Mistral-saba-24b)",
-                    st.secrets.get("groq_api_key", ""),
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    "mistral-saba-24b",
-                    prompt,
-                    timeout
-                )
-            st.warning(f"Rate Limit bei {selected_provider}. Warte {timeout}s...")
-            import time
-            time.sleep(timeout)
-            continue
-        st.error(f"API-Fehler {resp.status_code}: {resp.text}")
-        return None, selected_provider
-
-def generate_prompt_grok(final_prompt):
-    # Annahme: Groq-API-Key in st.secrets["groq_api_key"]
-    groq_url = "https://api.groq.com/openai/v1/chat/completions"
-    groq_key = st.secrets.get("groq_api_key", "")
-    payload = {
-        "model": "mistral-saba-24b",
-        "messages": [
-            {"role": "system", "content": final_prompt},
-        ],
-        "temperature": 0.7
-    }
-    resp = requests.post(groq_url, headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}, json=payload)
-    if resp.status_code == 200:
-        return resp.json()["choices"][0]["message"]["content"].strip()
-    else:
-        return f"Generator-API-Fehler {resp.status_code}: {resp.text}"
-
-# === config.py ===
-# Alle Konfig-Listen, Modellzuordnung und API-Infos
-
-PROVIDERS = ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"]
-USE_CASES = ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"]
-LLM_LIST = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-saba-24b", "llama-2-13b"]
-
-def get_api_conf(provider):
-    if provider.startswith("OpenAI"):
-        return "https://api.openai.com/v1/chat/completions", st.secrets.get("openai_api_key", ""), "gpt-3.5-turbo", 0.002
-    else:
-        return "https://api.groq.com/openai/v1/chat/completions", st.secrets.get("groq_api_key", ""), "mistral-saba-24b", 0.0
