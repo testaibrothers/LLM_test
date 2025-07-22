@@ -75,10 +75,12 @@ def generate_prompt_grok(final_prompt):
         "temperature": 0.7
     }
     resp = requests.post(groq_url, headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}, json=payload)
+    st.text_area("API-Response (raw)", resp.text)  # <- Debug-Ausgabe!
     if resp.status_code == 200:
         return resp.json()["choices"][0]["message"]["content"].strip()
     else:
         return f"Generator-API-Fehler {resp.status_code}: {resp.text}"
+
 
 # === Streamlit-UI ===
 st.set_page_config(page_title="🤖 LLM-Debattenplattform", layout="wide")
