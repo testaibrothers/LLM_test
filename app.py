@@ -102,8 +102,8 @@ def run_neu():
             max_rounds_opt = ["Endlos"] + list(range(1, 101))
             st.selectbox("Maximale Runden", max_rounds_opt, key="max_rounds")
             # Kreativitätsregler für Agent A und B
-            temp_a = st.slider("Temperatur Agent A", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="temperature_a")
-            temp_b = st.slider("Temperatur Agent B", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="temperature_b")
+            temp_a = st.slider("Temperatur Agent A", min_value=0.0, max_value=1.0, value=0.7, step=0.05, key="temperature_a", help="Temperature steuert die Kreativität: bei 0.0 sehr deterministisch, bei 1.0 sehr variabel.")
+            temp_b = st.slider("Temperatur Agent B", min_value=0.0, max_value=1.0, value=0.7, step=0.05, key="temperature_b", help="Temperature steuert die Kreativität: bei 0.0 sehr deterministisch, bei 1.0 sehr variabel.")
             st.checkbox("Manuelle Bestätigung zwischen Runden?", key="manual_pause")
             st.text_input("Thema speichern unter", key="save_topic")
             if st.button("Thema speichern"):
