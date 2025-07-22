@@ -184,38 +184,21 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
-    # Diskussion starten & Ausführen
+        # Diskussion starten & Ausführen
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
         # Agentenaufrufe
-                # Agentenaufrufe
-        combined_a = f"{prompt_a}\n{question_neu}"
-        combined_b = f"{prompt_b}\n{question_neu}"
-        resp_a, _ = debate_call(
-            "OpenAI", st.secrets.get("openai_api_key", ""),
-            "https://api.openai.com/v1/chat/completions",
-            agent_a_model,
-            combined_a
-        )
-        resp_b, _ = debate_call(
-            "OpenAI", st.secrets.get("openai_api_key", ""),
-            "https://api.openai.com/v1/chat/completions",
-            agent_b_model,
-            combined_b
-        )
-        st.markdown("### 🗣️ Agent A Antwort")
-        st.write(resp_a)
-        st.markdown("### 🗣️ Agent B Antwort")
-        st.write(resp_b), "https://api.openai.com/v1/chat/completions", agent_a_model, f"{prompt_a}
+        combined_a = f"{prompt_a}
 {question_neu}"
-        )
-        resp_b, _ = debate_call(
-            "OpenAI", st.secrets.get("openai_api_key", ""), "https://api.openai.com/v1/chat/completions", agent_b_model, f"{prompt_b}
+        combined_b = f"{prompt_b}
 {question_neu}"
-        )
+        api_url = "https://api.openai.com/v1/chat/completions"
+        api_key = st.secrets.get("openai_api_key", "")
+        resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, combined_a)
+        resp_b, _ = debate_call("OpenAI", api_key, api_url, agent_b_model, combined_b)
         st.markdown("### 🗣️ Agent A Antwort")
         st.write(resp_a)
         st.markdown("### 🗣️ Agent B Antwort")
