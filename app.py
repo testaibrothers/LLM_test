@@ -122,35 +122,40 @@ def run_neu():
 
     # Input-Bereich mit Datei-Upload
     input_text = st.text_area("Deine Idee/Businessplan/Thema:", height=150)
-    uploaded = st.file_uploader(label="➕", type=["pdf","txt","docx"], help="Datei hier hochladen")
+    uploaded = st.file_uploader(label="➕ Datei hochladen", type=["pdf","txt","docx"], help="Datei hier hochladen")
     if uploaded:
         parsed = parse_uploaded_file(uploaded)
         if parsed:
             input_text = parsed
             st.success("📎 Datei erfolgreich eingelesen.")
 
-        # Modell A Auswahl und Inline-Button
-    colA1, colA2 = st.columns([3,1])
-    model_a = colA1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
-    start_a = colA2.button("🔴", key="start_a")
+    # Modelle auswählen
+    col1, col2 = st.columns(2)
+    model_a = col1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
+    model_b = col2.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
 
-    # Modell B Auswahl und Inline-Button
-    colB1, colB2 = st.columns([3,1])
-    model_b = colB1.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
-    start_b = colB2.button("🔴", key="start_b")
-
-    st.caption("Drücke '🔴' neben dem jeweiligen Modell, um mit Agent A bzw. B zu starten.")
+    # Wer startet die Diskussion?
+    starter = st.radio(
+        "Wer startet die Diskussion?",
+        options=["Agent A", "Agent B"],
+        index=0,
+        horizontal=True
+    )
 
     # Prompt-Modus für Agent B
-    mode = st.radio("Prompt-Modus", ["Getrennter Prompt für B","Gleicher Prompt für beide"], key="modus")
+    mode = st.radio(
+        "Prompt-Modus",
+        ["Getrennter Prompt für B", "Gleicher Prompt für beide"],
+        key="modus"
+    )
     prompt_b = st.text_area(
-        "Prompt für Agent B:" if mode=="Getrennter Prompt für B" else "Gemeinsamer Prompt:",
+        "Prompt für Agent B:" if mode == "Getrennter Prompt für B" else "Gemeinsamer Prompt:",
         height=100,
         key="prompt_b"
     )
 
     # Diskussion starten
-    if start_a or start_b:
+    if st.button("Diskussion starten", key="start_neu"):
         if not input_text:
             st.error("Bitte Input eingeben oder Datei hochladen.")
             return
@@ -158,12 +163,14 @@ def run_neu():
         api_key = st.secrets.get("openai_api_key", "")
         prompt_a = input_text
         prompt_b_final = prompt_b if prompt_b else input_text
-        if start_a:
+
+        if starter == "Agent A":
             resp_a = debate_call(api_key, api_url, model_a, prompt_a)
             resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
         else:
             resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
             resp_a = debate_call(api_key, api_url, model_a, prompt_a)
+
         st.markdown("### 🗣️ Antwort Agent A")
         st.write(resp_a or "Keine Antwort.")
         st.markdown("### 🗣️ Antwort Agent B")
