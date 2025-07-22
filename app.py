@@ -1,10 +1,10 @@
-
 # LLM-Debatte – Einfache Komplettversion in einer Datei (nur OpenAI)
 import streamlit as st
 import requests
 import time
 import json
 import re
+import docx2txt
 
 # === JSON Parsing ===
 def extract_json_fallback(text):
@@ -106,12 +106,28 @@ def run_grundversion():
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
+    st.markdown("**Hinweis:** Agent A startet immer die Diskussion basierend auf deinem Input.")
+
     model_list = ["gpt-3.5-turbo", "gpt-4"]
     col1, col2 = st.columns(2)
     with col1:
         model_a = st.selectbox("Modell für Agent A", model_list, key="neu_a")
     with col2:
         model_b = st.selectbox("Modell für Agent B", model_list, key="neu_b")
+
+    st.markdown("### Eingabe für Agent A")
+    idea_text = st.text_area("Deine Idee / Thema / Businessplan")
+    uploaded_file = st.file_uploader("...oder lade eine Datei hoch (PDF, TXT, DOCX)", type=["pdf", "txt", "docx"])
+
+    if uploaded_file is not None:
+        if uploaded_file.type == "application/pdf":
+            from PyPDF2 import PdfReader
+            reader = PdfReader(uploaded_file)
+            idea_text = "\n".join([page.extract_text() or "" for page in reader.pages])
+        elif uploaded_file.type == "text/plain":
+            idea_text = uploaded_file.read().decode("utf-8")
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            idea_text = docx2txt.process(uploaded_file)
 
     st.markdown("### Prompt-Modus")
     mode = st.radio("Eingabemodus", ["Getrennter Prompt für A und B", "Gleicher Prompt für beide"], key="modus")
@@ -144,10 +160,10 @@ def run_neu():
                 st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
 
     if mode == "Getrennter Prompt für A und B":
-        prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a")
+        prompt_a = st.text_area("Prompt für Agent A", value=idea_text or st.session_state.get("prompt_a", ""), key="prompt_a")
         prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b")
     else:
-        shared = st.text_area("Gleicher Prompt für beide", key="shared")
+        shared = st.text_area("Gleicher Prompt für beide", value=idea_text, key="shared")
         prompt_a = prompt_b = shared
 
     start = st.button("Diskussion starten", key="start_neu")
