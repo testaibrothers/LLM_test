@@ -1,3 +1,5 @@
+Achtung: Es ist strengstens untersagt, irgendetwas anderes als einen menschenlesbaren Prompt zu generieren. Keine Einleitung, keine Beispiele, keine Meta-Kommentare, kein Code, kein Wiki, kein Blog! Dein Output darf niemals gegen diese Anweisung verstoßen.
+
 Erstelle ausschließlich einen menschenlesbaren LLM-Systemprompt für ein KI-Modell. 
 Der Systemprompt muss so geschrieben sein, dass das LLM eine bestimmte Rolle, Denkweise, Ziele und Kommunikationsstil einnimmt, passend zum folgenden Thema oder Begriff:
 
