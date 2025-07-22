@@ -140,16 +140,38 @@ def run_neu():
             st.markdown("Verwende ein Schlagwort, um einen professionellen Prompt zu generieren:")
             keyword = st.text_input("Schlagwort:", key="gen_kw")
             if st.button("Generiere Prompt", key="gen_btn") and keyword:
-                init_sys = "Du bist ein erfahrener Prompt-Designer."
-                gen_input = init_sys + "\n" + keyword
+                init_sys = (
+                    "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, "
+                    "präziser und anwendungsoptimierter Prompts. "
+                    "Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln."
+                )
+                generator_url = "https://api.groq.com/openai/v1/chat/completions"
+                generator_key = st.secrets.get("groq_api_key", "")
+                # Schritt 1: System-Kontext initialisieren
+                _, _ = debate_call(
+                    "Groq",
+                    generator_key,
+                    generator_url,
+                    "mistral-saba-24b",
+                    init_sys
+                )
+                # Schritt 2: Generierung basierend auf dem Schlagwort
+                gen_input = keyword
                 prompt_gen, _ = debate_call(
                     "Groq",
-                    st.secrets.get("groq_api_key", ""),
-                    "https://api.groq.com/openai/v1/chat/completions",
+                    generator_key,
+                    generator_url,
                     "mistral-saba-24b",
                     gen_input
                 )
-                st.text_area("Generierter Prompt:", prompt_gen or "Fehler bei der Prompt-Generierung", height=150, key="gen_out")
+                # Ausgabe des generierten Prompts
+                st.text_area(
+                    "Generierter Prompt:",
+                    prompt_gen or "Fehler bei der Prompt-Generierung",
+                    height=150,
+                    key="gen_out"
+                )
+        # Agent-Prompts"Generierter Prompt:", prompt_gen or "Fehler bei der Prompt-Generierung", height=150, key="gen_out")
         # Agent-Prompts
         diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
         if diff:
