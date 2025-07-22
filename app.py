@@ -22,6 +22,13 @@ def show_debug_output(raw):
     st.warning("Antwort nicht als JSON erkennbar. Roh-Antwort folgt:")
     st.code(raw, language="text")
 
+# === PDF- oder Textinput für Agent A ===
+st.markdown("### 💡 Deine Idee oder Frage für Agent A")
+st.markdown("Agent A beginnt immer die Diskussion. Du kannst hier deinen Text eingeben oder eine PDF hochladen.")
+
+input_text = st.text_area("📝 Beschreibe deine Idee, deinen Plan oder deine Frage:", height=200)
+uploaded_file = st.file_uploader("📎 Optional: PDF anhängen", type=["pdf"])
+
 # === API Call ===
 def debate_call(api_key, api_url, model, prompt, timeout=25):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
