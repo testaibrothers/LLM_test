@@ -159,11 +159,13 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
                     "temperature": 0.7
                 }
                 try:
-                    resp = requests.post(generator_url,
-                                         headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"},
-                                         json=gen_payload)
+                    resp = requests.post(
+                        generator_url,
+                        headers={"Authorization": f"Bearer {gen_key}", "Content-Type": "application/json"},
+                        json=gen_payload
+                    )
                     prompt_gen = resp.json()["choices"][0]["message"]["content"]
-                except:
+                except Exception:
                     prompt_gen = "Fehler bei der Prompt-Generierung"
                 st.text_area("Generierter Prompt:", prompt_gen, height=150, key="gen_out")
         # Eingabe der Agent-Prompts
@@ -192,7 +194,7 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
-        # Agentenaufrufe
+        # Agentenaufrufe mit korrekt terminiertem f-String
         combined_a = f"{prompt_a}
 {question_neu}"
         combined_b = f"{prompt_b}
@@ -207,6 +209,11 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         st.write(resp_b)
 
 # === Version Switch ===
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
