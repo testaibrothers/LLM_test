@@ -29,15 +29,11 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
         "temperature": 0.2,
         "max_tokens": 2000
     }
-    try:
-        resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
-        if resp.status_code == 200:
-            return resp.json()["choices"][0]["message"]["content"]
-        else:
-            st.error(f"API-Fehler {resp.status_code}: {resp.text}")
-            return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Verbindungsfehler: {e}")
+    resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
+    if resp.status_code == 200:
+        return resp.json()["choices"][0]["message"]["content"]
+    else:
+        st.error(f"API-Fehler {resp.status_code}: {resp.text}")
         return None
 
 # === UI ===
@@ -51,54 +47,30 @@ def run_grundversion():
         index=0
     )
     question = st.text_area("Deine Fragestellung:")
-    start = st.button("Debatte starten")
-
-    if start and question:
+    if st.button("Debatte starten") and question:
         progress = st.progress(0)
         st.info("Debatte läuft...")
         progress.progress(10)
-
         if use_case == "Allgemeine Diskussion":
-            prompt = (
-                f"Thema: '{question}'\n"
-                "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-                "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
-            )
+            prompt = f"Thema: '{question}'\nAgent A (optimistisch)\nAgent B (pessimistisch)\nBitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
         else:
-            prompt = (
-                f"Thema: '{question}'\n"
-                "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
-                "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
-            )
-
+            prompt = f"Thema: '{question}'\nAgent A analysiert Chancen.\nAgent B analysiert Risiken.\nBitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
         progress.progress(30)
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-        model = "gpt-3.5-turbo"
-        progress.progress(50)
-
-        start_time = time.time()
-        content = debate_call(api_key, api_url, model, prompt)
-        duration = time.time() - start_time
-        if not content:
-            st.error("Keine Antwort erhalten.")
-            progress.progress(100)
-            return
-
+        response = debate_call(api_key, api_url, "gpt-3.5-turbo", prompt)
+        progress.progress(100)
         try:
-            data = json.loads(content)
+            data = json.loads(response)
         except:
-            data = extract_json_fallback(content)
-            show_debug_output(content)
-
-        st.markdown(f"**Dauer:** {duration:.2f}s")
+            data = extract_json_fallback(response)
+            show_debug_output(response)
         st.markdown("### 🤝 Optimistische Perspektive")
         st.write(data.get("optimistic", "-"))
         st.markdown("###⚠️ Pessimistische Perspektive")
         st.write(data.get("pessimistic", "-"))
         st.markdown("### ✅ Empfehlung")
         st.write(data.get("recommendation", "-"))
-        progress.progress(100)
 
 # === Neu-Version ===
 def run_neu():
@@ -109,71 +81,47 @@ def run_neu():
         keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
         if st.button("Prompt generieren", key="gen_btn") and keyword:
             try:
-                with open("promptgen_header.txt", "r", encoding="utf-8") as file:
-                    template = file.read().strip()
-                filled_prompt = template.replace("[SCHLAGWORT]", keyword)
-                api_url = "https://api.openai.com/v1/chat/completions"
-                api_key = st.secrets.get("openai_api_key", "")
-                response = debate_call(api_key, api_url, "gpt-3.5-turbo", filled_prompt)
-                if response:
-                    filled_prompt = response
-                else:
-                    filled_prompt = "[Fehler bei der Generierung]"
+                template = open("promptgen_header.txt", encoding="utf-8").read().strip()
+                filled = template.replace("[SCHLAGWORT]", keyword)
+                resp = debate_call(st.secrets.get("openai_api_key", ""), "https://api.openai.com/v1/chat/completions", "gpt-3.5-turbo", filled)
+                filled = resp or "[Fehler bei der Generierung]"
             except FileNotFoundError:
-                filled_prompt = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
-            st.session_state["last_generated"] = filled_prompt
+                filled = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
+            st.session_state["last_generated"] = filled
         st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
-        cols = st.columns(2)
-        with cols[0]:
-            if st.button("In A übernehmen", key="toA"):
-                st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
-        with cols[1]:
-            if st.button("In B übernehmen", key="toB"):
-                st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
+        c1, c2 = st.columns(2)
+        if c1.button("In A übernehmen"):
+            st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
+        if c2.button("In B übernehmen"):
+            st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
 
     # Hauptbereich
     idea = st.text_area("Deine Idee / Businessplan / Thema:")
-    st.markdown("**Welcher Agent soll starten?**")
-    start_agent = st.radio("Agent auswählen:", ["Agent A", "Agent B"], key="start_agent")
-
-    model_list = ["gpt-3.5-turbo", "gpt-4"]
+    start_agent = st.radio("Welcher Agent soll starten?", ["Agent A", "Agent B"], key="start_agent")
+    m_list = ["gpt-3.5-turbo", "gpt-4"]
     col1, col2 = st.columns(2)
     with col1:
-        model_a = st.selectbox("Modell für Agent A", model_list, key="neu_a")
-        prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a")
+        model_a = st.selectbox("Modell für Agent A", m_list, key="neu_a")
+        prompt_a = st.text_area("Prompt für Agent A", st.session_state.get("prompt_a", ""), key="prompt_a")
     with col2:
-        model_b = st.selectbox("Modell für Agent B", model_list, key="neu_b")
-        prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b")
+        model_b = st.selectbox("Modell für Agent B", m_list, key="neu_b")
+        prompt_b = st.text_area("Prompt für Agent B", st.session_state.get("prompt_b", ""), key="prompt_b")
 
-    start = st.button("Diskussion starten", key="start_discussion")
-
-    # Platz für Agentenantworten
-    response_a = response_b = None
-    if start and idea:
-        api_url = "https://api.openai.com/v1/chat/completions"
+    if st.button("Diskussion starten") and idea:
         api_key = st.secrets.get("openai_api_key", "")
+        api_url = "https://api.openai.com/v1/chat/completions"
         prefix = f"Nutzeridee: {idea}\n"
         if start_agent == "Agent A":
-            full_prompt_a = prefix + prompt_a
-            response_a = debate_call(api_key, api_url, model_a, full_prompt_a)
+            response = debate_call(api_key, api_url, model_a, prefix + prompt_a)
         else:
-            full_prompt_b = prefix + prompt_b
-            response_b = debate_call(api_key, api_url, model_b, full_prompt_b)
+            response = debate_call(api_key, api_url, model_b, prefix + prompt_b)
+        if response:
+            st.markdown(f"### 🗣️ Antwort von {start_agent}")
+            st.write(response)
 
-    # Ausgabe der Antworten
-    if response_a:
-        st.markdown("### 🗣️ Antwort von Agent A")
-        st.write(response_a)
-    if response_b:
-        st.markdown("### 🗣️ Antwort von Agent B")
-        st.write(response_b)
-
-    # Finale Konsens-Generierung
-    if response_a or response_b:
-        st.markdown("### 🏁 Finale Konsens")
-        combined = "Antwort Agent A:\n" + (response_a or "-") + "\n\nAntwort Agent B:\n" + (response_b or "-")
-        consensus = debate_call(api_key, api_url, "gpt-3.5-turbo", """Fasse basierend auf den folgenden beiden Antworten beider Agenten einen finale Konsens zusammen:\n""" + combined)
-        st.text_area("Finaler Konsens:", value=consensus or "Keine Antwort", height=200)
+    # Großes kosmetisches Ausgabefeld für finalen Konsens (ohne Logik)
+    st.markdown("### 🏁 Finaler Konsens")
+    st.text_area("Hier steht der finale Konsens:", value="", height=200)
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
