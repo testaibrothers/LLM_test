@@ -139,7 +139,7 @@ def run_neu():
         model_a = st.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
     with col2:
         model_b = st.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
-    st.caption("Agent A startet immer basierend auf deinem Input.")
+    st.caption("Wähle, welcher Agent die Diskussion startet.")
 
     # Prompt-Modus
     mode = st.radio("Prompt-Modus", ["Getrennter Prompt für B","Gleicher Prompt für beide"], key="modus")
@@ -149,20 +149,39 @@ def run_neu():
         key="prompt_b"
     )
 
-    if st.button("Diskussion starten", key="start_neu"):
+    # Start-Buttons für Agenten
+    btn_a, btn_b = st.columns(2)
+    start_a = btn_a.button("Starte mit Agent A")
+    start_b = btn_b.button("Starte mit Agent B")
+
+    if (start_a or start_b):
         if not input_text:
             st.error("Bitte Input eingeben oder Datei hochladen.")
             return
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-        resp_a = debate_call(api_key, api_url, model_a, input_text)
-        resp_b = debate_call(api_key, api_url, model_b, prompt_b)
+
+        # Agent A Prompt
+        prompt_a = input_text
+        # Agent B Prompt
+        prompt_b_final = prompt_b if prompt_b else input_text
+
+        # Diskussionsreihenfolge
+        if start_a:
+            resp_a = debate_call(api_key, api_url, model_a, prompt_a)
+            resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
+        else:
+            resp_b = debate_call(api_key, api_url, model_b, prompt_b_final)
+            resp_a = debate_call(api_key, api_url, model_a, prompt_a)
+
         st.markdown("### 🗣️ Antwort Agent A")
         st.write(resp_a or "Keine Antwort.")
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(resp_b or "Keine Antwort.")
 
 # Version-Auswahl
+version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
+if version == "Grundversion":
 version = st.selectbox("Version:", ["Grundversion","Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
