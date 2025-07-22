@@ -154,7 +154,7 @@ def run_neuversion():
         progress.progress(100)
 
 # === Version-Switch ===
-version = st.selectbox("Version:", ["Grundversion", "NeuVersion"], index=0)
+version = st.selectbox("Version:", ["Grundversion", "NeuVersion"], index=1)
 if version == "Grundversion":
     run_grundversion()
 elif version == "NeuVersion":
