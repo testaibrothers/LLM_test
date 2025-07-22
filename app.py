@@ -3,6 +3,7 @@ import streamlit as st
 import requests
 import json
 import re
+import time
 
 # === JSON Parsing ===
 def extract_json_fallback(text):
@@ -18,7 +19,7 @@ def extract_json_fallback(text):
 # === API Call ===
 def debate_call(api_key, api_url, model, prompt, timeout=25):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": 0.2, "max_tokens": 2000}
+    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": 0.2, "max_tokens": 200}
     try:
         resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
         if resp.status_code == 200:
@@ -41,55 +42,31 @@ def run_grundversion():
         index=0
     )
     question = st.text_area("Deine Fragestellung:")
-    start = st.button("Debatte starten")
-
-    if start and question:
+    if st.button("Debatte starten") and question:
         progress = st.progress(0)
         st.info("Debatte läuft...")
         progress.progress(10)
-
         if use_case == "Allgemeine Diskussion":
-            prompt = (
-                f"Thema: '{question}'\n"
-                "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
-                "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
-            )
+            prompt = f"Thema: '{question}'\nAgent A (optimistisch)\nAgent B (pessimistisch)\nBitte liefere als Ergebnis ein JSON mit: optimistic, pessimistic, recommendation."
         else:
-            prompt = (
-                f"Thema: '{question}'\n"
-                "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
-                "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
-            )
-
+            prompt = f"Thema: '{question}'\nAgent A analysiert Chancen.\nAgent B analysiert Risiken.\nBitte liefere als Ergebnis ein JSON mit: optimistic, pessimistic, recommendation."
         progress.progress(30)
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-        model = "gpt-3.5-turbo"
-        progress.progress(50)
-
-        start_time = time.time()
-        content = debate_call(api_key, api_url, model, prompt)
-        duration = time.time() - start_time
-        if not content:
-            st.error("Keine Antwort erhalten.")
-            progress.progress(100)
-            return
-
+        result = debate_call(api_key, api_url, "gpt-3.5-turbo", prompt)
+        progress.progress(100)
         try:
-            data = json.loads(content)
+            data = json.loads(result)
         except:
-            data = extract_json_fallback(content)
+            data = extract_json_fallback(result)
             st.warning("Antwort nicht als JSON erkennbar. Roh-Antwort folgt:")
-            st.code(content, language="text")
-
-        st.markdown(f"**Dauer:** {duration:.2f}s")
+            st.code(result, language="text")
         st.markdown("### 🤝 Optimistische Perspektive")
         st.write(data.get("optimistic", "-"))
         st.markdown("###⚠️ Pessimistische Perspektive")
         st.write(data.get("pessimistic", "-"))
         st.markdown("### ✅ Empfehlung")
         st.write(data.get("recommendation", "-"))
-        progress.progress(100)
 
 # === Neu-Version ===
 def run_neu():
@@ -100,35 +77,32 @@ def run_neu():
         keyword = st.text_input("Schlagwort eingeben:")
         if st.button("Prompt generieren") and keyword:
             try:
-                with open("promptgen_header.txt", "r", encoding="utf-8") as file:
-                    template = file.read().strip()
-                filled = template.replace("[SCHLAGWORT]", keyword)
-                gen = debate_call(st.secrets.get("openai_api_key", ""), "https://api.openai.com/v1/chat/completions", "gpt-3.5-turbo", filled)
-                filled = gen or "[Fehler bei der Generierung]"
+                with open("promptgen_header.txt", "r", encoding="utf-8") as f:
+                    template = f.read().strip()
+                gen_prompt = template.replace("[SCHLAGWORT]", keyword)
+                gen_resp = debate_call(st.secrets.get("openai_api_key", ""), "https://api.openai.com/v1/chat/completions", "gpt-3.5-turbo", gen_prompt)
+                st.session_state["prompt_a"] = gen_resp or ""
+                st.session_state["prompt_b"] = gen_resp or ""
             except FileNotFoundError:
-                filled = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
-            st.session_state["last_generated"] = filled
-        st.text_area("Vorschlag:", st.session_state.get("last_generated", ""), height=100)
-        c1, c2 = st.columns(2)
-        if c1.button("In A übernehmen"): st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
-        if c2.button("In B übernehmen"): st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
+                st.session_state["prompt_a"] = ""
+                st.session_state["prompt_b"] = ""
+        st.text_area("Vorschlag", st.session_state.get("prompt_a", ""), height=100)
 
     # Hauptbereich
     idea = st.text_area("Deine Idee / Businessplan / Thema:")
-    st.markdown("**Welcher Agent soll starten?**")
-    start_agent = st.radio("Agent auswählen:", ["Agent A", "Agent B"], key="start_agent")
+    start_agent = st.radio("Welcher Agent startet?", ["Agent A", "Agent B"], horizontal=True)
 
-    model_list = ["gpt-3.5-turbo", "gpt-4"]
     col1, col2 = st.columns(2)
     with col1:
-        model_a = st.selectbox("Modell für Agent A", model_list, key="neu_a")
-        prompt_a = st.text_area("Prompt für Agent A", st.session_state.get("prompt_a", ""), key="prompt_a")
+        model_a = st.selectbox("Modell Agent A", ["gpt-3.5-turbo", "gpt-4"], key="neu_a")
+        prompt_a = st.text_area("Prompt Agent A", st.session_state.get("prompt_a", ""), height=120)
     with col2:
-        model_b = st.selectbox("Modell für Agent B", model_list, key="neu_b")
-        prompt_b = st.text_area("Prompt für Agent B", st.session_state.get("prompt_b", ""), key="prompt_b")
+        model_b = st.selectbox("Modell Agent B", ["gpt-3.5-turbo", "gpt-4"], key="neu_b")
+        prompt_b = st.text_area("Prompt Agent B", st.session_state.get("prompt_b", ""), height=120)
 
     if st.button("Diskussion starten") and idea:
         api_key = st.secrets.get("openai_api_key", "")
+        api_url = "https://api.openai.com/v1/chat/completions"
         prefix = f"Nutzeridee: {idea}\n"
         if start_agent == "Agent A":
             response = debate_call(api_key, api_url, model_a, prefix + prompt_a)
@@ -137,10 +111,6 @@ def run_neu():
         if response:
             st.markdown(f"### 🗣️ Antwort von {start_agent}")
             st.write(response)
-
-    # Großes kosmetisches Ausgabefeld für finalen Konsens (ohne Logik)
-    st.markdown("### 🏁 Finaler Konsens")
-    st.text_area("Hier steht der finale Konsens:", value="", height=200)
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
