@@ -35,15 +35,13 @@ if uploaded_file:
     if uploaded_file.type == "application/pdf":
         import fitz  # PyMuPDF
         doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-        input_text = "
-".join(page.get_text() for page in doc)
+        input_text = "\n".join(page.get_text() for page in doc)
     elif uploaded_file.type == "text/plain":
         input_text = uploaded_file.read().decode("utf-8")
     elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         import docx
         doc = docx.Document(uploaded_file)
-        input_text = "
-".join([p.text for p in doc.paragraphs])
+        input_text = "\n".join([p.text for p in doc.paragraphs])
 
 # === API Call ===
 def debate_call(api_key, api_url, model, prompt, timeout=25):
@@ -66,7 +64,7 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
         return None
 
 
-        # === UI ===
+# === UI ===
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
     st.subheader("Single-Call Debatte mit OpenAI")
@@ -85,20 +83,14 @@ def run_grundversion():
 
         if use_case == "Allgemeine Diskussion":
             prompt = (
-                f"Thema: '{input_text}'
-"
-                "Agent A (optimistisch)
-Agent B (pessimistisch)
-"
+                f"Thema: '{input_text}'\n"
+                "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
                 "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
         else:
             prompt = (
-                f"Thema: '{question}'
-"
-                "Agent A analysiert Chancen.
-Agent B analysiert Risiken.
-"
+                f"Thema: '{question}'\n"
+                "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
                 "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
 
