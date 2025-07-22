@@ -114,8 +114,7 @@ def run_neu():
                 help="Steuert die Kreativität: 0.0 sehr deterministisch, 1.0 sehr variabel."
             )
             temp_b = st.slider(
-                "Temperatur Agent B", 0.0, 1.0, 0.7, 0.05, key="temperature_b",
-                help="Steuert die Kreativität: 0.0 sehr deterministisch, 1.0 sehr variabel."
+                "Temperatur Agent B", 0.0, 1.0, 0.7, 0.05, key="temperature_b"
             )
             st.checkbox(
                 "Manuelle Bestätigung zwischen Runden?", key="manual_pause",
