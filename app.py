@@ -10,7 +10,7 @@ def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
     st.subheader("Single-Call Debatte mit Fallback & Live-Statistiken")
 
-    provider = st.radio("Modell-Anbieter wählen:", ["OpenAI (gpt-3.5-turbo)", "Groq (Mistral-saba-24b)"])
+    provider = "OpenAI (gpt-3.5-turbo)"
     use_case = st.selectbox(
         "Use Case auswählen:",
         ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
@@ -37,19 +37,13 @@ def run_grundversion():
                 "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
 
-        prompt = adjust_prompt_for_provider(base_prompt, provider)
+        prompt = base_prompt  # Nur OpenAI, daher keine Provider-Abzweigung mehr
         progress.progress(30)
 
-        if provider.startswith("OpenAI"):
-            api_url = "https://api.openai.com/v1/chat/completions"
-            api_key = st.secrets.get("openai_api_key", "")
-            model = "gpt-3.5-turbo"
-            cost_rate = 0.002
-        else:
-            api_url = "https://api.groq.com/openai/v1/chat/completions"
-            api_key = st.secrets.get("groq_api_key", "")
-            model = "mistral-saba-24b"
-            cost_rate = 0.0
+        api_url = "https://api.openai.com/v1/chat/completions"
+        api_key = st.secrets.get("openai_api_key", "")
+        model = "gpt-3.5-turbo"
+        cost_rate = 0.002
         progress.progress(50)
 
         start_time = time.time()
@@ -76,9 +70,8 @@ def run_grundversion():
 
         progress.progress(70)
         st.markdown(f"**Provider:** {used}")
-        if used.startswith("OpenAI"):
-            tokens = len(raw.split())
-            st.markdown(f"**Kosten:** ${(tokens/1000)*cost_rate:.4f}")
+        tokens = len(raw.split())
+        st.markdown(f"**Kosten:** ${(tokens/1000)*cost_rate:.4f}")
         st.markdown(f"**Dauer:** {duration:.2f}s")
         progress.progress(90)
 
@@ -93,4 +86,3 @@ def run_grundversion():
 version = st.selectbox("Version:", ["Grundversion"], index=0)
 if version == "Grundversion":
     run_grundversion()
-
