@@ -43,7 +43,6 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
 # === UI ===
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
-    st.title("🤖 KI-Debattenplattform – Grundversion")
     st.subheader("Single-Call Debatte mit OpenAI")
 
     use_case = st.selectbox(
@@ -85,7 +84,22 @@ def run_grundversion():
         if not content:
             st.error("Keine Antwort erhalten.")
             progress.progress(100)
-        return
+            return
+
+        try:
+            data = json.loads(content)
+        except:
+            data = extract_json_fallback(content)
+            show_debug_output(content)
+
+        st.markdown(f"**Dauer:** {duration:.2f}s")
+        st.markdown("### 🤝 Optimistische Perspektive")
+        st.write(data.get("optimistic", "-"))
+        st.markdown("### ⚠️ Pessimistische Perspektive")
+        st.write(data.get("pessimistic", "-"))
+        st.markdown("### ✅ Empfehlung")
+        st.write(data.get("recommendation", "-"))
+        progress.progress(100)
 
 # === Neu-Version ===
 def run_neu():
@@ -107,7 +121,7 @@ def run_neu():
         if st.button("Prompt generieren", key="gen_btn") and keyword:
             try:
                 with open("promptgen_header.txt", "r", encoding="utf-8") as file:
-                template = file.read().strip()
+                    template = file.read().strip()
                 messages = [
                     {"role": "system", "content": template.replace("[SCHLAGWORT]", keyword)}
                 ]
@@ -129,8 +143,7 @@ def run_neu():
                 except Exception as e:
                     filled_prompt = f"[Fehler beim API-Aufruf] {e}"
             except FileNotFoundError:
-                filled_prompt = f"[Promptdatei fehlt]
-Schlagwort: {keyword}"
+                filled_prompt = f"[Promptdatei fehlt]\nSchlagwort: {keyword}"
             st.session_state["last_generated"] = filled_prompt
         st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
         cols = st.columns(2)
