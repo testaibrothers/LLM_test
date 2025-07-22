@@ -5,48 +5,6 @@ import time
 import json
 import re
 
-# === JSON Parsing ===
-def extract_json_fallback(text):
-    optimistic = re.search(r'optimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
-    pessimistic = re.search(r'pessimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
-    recommendation = re.search(r'recommendation\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
-    return {
-        "optimistic": optimistic.group(1).strip() if optimistic else "-",
-        "pessimistic": pessimistic.group(1).strip() if pessimistic else "-",
-        "recommendation": recommendation.group(1).strip() if recommendation else "-"
-    }
-
-def show_debug_output(raw):
-    st.warning("Antwort nicht als JSON erkennbar. Roh-Antwort folgt:")
-    st.code(raw, language="text")
-
-# === API Call ===
-def debate_call(api_key, api_url, model, prompt, timeout=25):
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = {
-        "model": model,
-        "messages": [{"role": "system", "content": prompt}],
-        "temperature": 0.2,
-        "max_tokens": 200
-    }
-    try:
-        resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
-        if resp.status_code == 200:
-            return resp.json()["choices"][0]["message"]["content"]
-        else:
-            st.error(f"API-Fehler {resp.status_code}: {resp.text}")
-            return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Verbindungsfehler: {e}")
-        return None
-
-# === Grundversion UI ===
-def run_grundversion():
-    st.title("🤖 KI-Debattenplattform – Grundversion")
-    st.subheader("Single-Call Debatte mit OpenAI")
-
-    # Input über einfaches Textfeld
-    input_text = st.text_input("📝 Thema für die Diskussion eingeben:")
     start = st.button("💬 Diskussion starten")
 
     if start and input_text:
