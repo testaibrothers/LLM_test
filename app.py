@@ -20,9 +20,9 @@ def extract_json_fallback(text):
     }
 
 # === API Call ===
-def debate_call(api_key, api_url, model, prompt, timeout=25):
+def debate_call(api_key, api_url, model, prompt, temperature=0.2, timeout=25):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": 0.2, "max_tokens": 200}
+    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": temperature, "max_tokens": 200}
     try:
         resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
         if resp.status_code == 200:
@@ -33,6 +33,12 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
     except requests.exceptions.RequestException as e:
         st.error(f"Verbindungsfehler: {e}")
         return None
+
+# Initialize session state
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "saved_topics" not in st.session_state:
+    st.session_state.saved_topics = {}
 
 # === UI ===
 def run_grundversion():
@@ -85,19 +91,35 @@ def run_neu():
                     gen_resp = debate_call(st.secrets.get("openai_api_key", ""),
                                            "https://api.openai.com/v1/chat/completions",
                                            "gpt-3.5-turbo", gen_prompt)
-                    st.session_state["prompt_a"] = gen_resp or ""
-                    st.session_state["prompt_b"] = gen_resp or ""
+                    st.session_state.prompt_a = gen_resp or ""
+                    st.session_state.prompt_b = gen_resp or ""
                 except FileNotFoundError:
-                    st.session_state["prompt_a"] = ""
-                    st.session_state["prompt_b"] = ""
+                    st.session_state.prompt_a = ""
+                    st.session_state.prompt_b = ""
             st.text_area("Vorschlag", st.session_state.get("prompt_a", ""), height=100)
         with st.expander("⚙️ Einstellungen", expanded=True):
             st.selectbox("Welcher Agent startet?", ["Agent A", "Agent B"], key="start_agent")
             max_rounds_opt = ["Endlos"] + list(range(1, 101))
             st.selectbox("Maximale Runden", max_rounds_opt, key="max_rounds")
+            # Neue Einstellungen
+            temperature = st.slider("Temperatur (Kreativität)", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="temperature")
+            st.checkbox("Manuelle Bestätigung zwischen Runden?", key="manual_pause")
+            st.text_input("Thema speichern unter", key="save_topic")
+            if st.button("Thema speichern"):
+                name = st.session_state.get("save_topic")
+                st.session_state.saved_topics[name] = st.session_state.idea_text or ""
+                st.success(f"Thema '{name}' gespeichert.")
+            topic_list = list(st.session_state.saved_topics.keys())
+            if topic_list:
+                choice = st.selectbox("Gespeicherte Themen laden", topic_list, key="load_topic")
+                if st.button("Laden"):
+                    st.session_state.idea_text = st.session_state.saved_topics.get(choice, "")
+            if st.button("Sitzungsprotokoll herunterladen"):
+                st.download_button("Download JSON", data=json.dumps(st.session_state.chat_history), file_name="session.json")
 
     # Main content
-    idea = st.text_area("Deine Idee / Businessplan / Thema:")
+    st.text(" ")  # Abstand zum Sidebar
+    idea = st.text_area("Deine Idee / Businessplan / Thema:", key="idea_text")
     col1, col2 = st.columns(2)
     with col1:
         model_a = st.selectbox("Modell Agent A", ["gpt-3.5-turbo", "gpt-4"], key="neu_a")
@@ -106,17 +128,21 @@ def run_neu():
         model_b = st.selectbox("Modell Agent B", ["gpt-3.5-turbo", "gpt-4"], key="neu_b")
         prompt_b = st.text_area("Prompt Agent B", st.session_state.get("prompt_b", ""), height=120)
 
-    if st.button("Diskussion starten") and idea:
+    if st.button("Diskussion starten") and st.session_state.get("idea_text"):
         api_key = st.secrets.get("openai_api_key", "")
         api_url = "https://api.openai.com/v1/chat/completions"
-        prefix = f"Nutzeridee: {idea}\n"
+        prefix = f"Nutzeridee: {st.session_state.idea_text}\n"
         start_agent = st.session_state.get("start_agent", "Agent A")
+        temp = st.session_state.get("temperature", 0.2)
+        # Einfache einzelne Antwort-Simulation (rundenlogik noch nicht implementiert)
         if start_agent == "Agent A":
-            response = debate_call(api_key, api_url, model_a, prefix + prompt_a)
+            response = debate_call(api_key, api_url, model_a, prefix + prompt_a, temperature=temp)
         else:
-            response = debate_call(api_key, api_url, model_b, prefix + prompt_b)
+            response = debate_call(api_key, api_url, model_b, prefix + prompt_b, temperature=temp)
         st.markdown(f"### 🗣️ Antwort von {start_agent}")
         st.write(response)
+        # Chat History speichern
+        st.session_state.chat_history.append({"agent": start_agent, "response": response})
 
     st.markdown("### 🏁 Finaler Konsens")
     st.text_area("Hier steht der finale Konsens (kosmetisch):", value="", height=200)
