@@ -90,31 +90,42 @@ def run_grundversion():
 # === Neu-Version ===
 def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
-    st.subheader("Zwei Modelle mit getrennten Rollen")
 
     model_list = ["gpt-3.5-turbo", "gpt-4"]
-
     col1, col2 = st.columns(2)
     with col1:
-        model_a = st.selectbox("Modell für Agent A", model_list, index=0, key="neu_a")
+        model_a = st.selectbox("Modell für Agent A", model_list, key="neu_a")
     with col2:
-        model_b = st.selectbox("Modell für Agent B", model_list, index=0, key="neu_b")
+        model_b = st.selectbox("Modell für Agent B", model_list, key="neu_b")
 
-    st.markdown("### Charaktere definieren")
-    char_opts = ["Optimistisch", "Pessimistisch", "Kritisch"]
-    c1, c2 = st.columns(2)
-    with c1:
-        char_a = st.selectbox("Agent A", char_opts, key="charA")
-    with c2:
-        char_b = st.selectbox("Agent B", char_opts, key="charB")
+    st.markdown("### Prompt-Modus")
+    mode = st.radio("Eingabemodus", ["Getrennter Prompt für A und B", "Gleicher Prompt für beide"], key="modus")
 
-    question = st.text_area("Debattenfrage:", key="frage_neu")
+    # Sidebar Prompt-Generator
+    with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
+        keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
+        if st.button("Prompt generieren", key="gen_btn") and keyword:
+            gen_prompt = f"Du bist ein KI-Agent und behandelst folgendes Thema aus deiner Sicht: {keyword}"
+            st.session_state["last_generated"] = gen_prompt
+        st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
+        cols = st.columns(2)
+        with cols[0]:
+            if st.button("In A übernehmen", key="toA"):
+                st.session_state["prompt_a"] = st.session_state.get("last_generated", "")
+        with cols[1]:
+            if st.button("In B übernehmen", key="toB"):
+                st.session_state["prompt_b"] = st.session_state.get("last_generated", "")
+
+    # Promptfelder
+    if mode == "Getrennter Prompt für A und B":
+        prompt_a = st.text_area("Prompt für Agent A", value=st.session_state.get("prompt_a", ""), key="prompt_a")
+        prompt_b = st.text_area("Prompt für Agent B", value=st.session_state.get("prompt_b", ""), key="prompt_b")
+    else:
+        shared = st.text_area("Gleicher Prompt für beide", key="shared")
+        prompt_a = prompt_b = shared
+
     start = st.button("Diskussion starten", key="start_neu")
-
-    if start and question:
-        prompt_a = f"Du bist Agent A und agierst {char_a.lower()}. Thema: {question}"
-        prompt_b = f"Du bist Agent B und agierst {char_b.lower()}. Thema: {question}"
-
+    if start and (prompt_a and prompt_b):
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
 
@@ -125,35 +136,6 @@ def run_neu():
         st.write(response_a or "Keine Antwort")
         st.markdown("### 🗣️ Antwort Agent B")
         st.write(response_b or "Keine Antwort")
-
-        raw = content.strip()
-        if raw.startswith("```") and raw.endswith("```"):
-            raw = "\n".join(raw.splitlines()[1:-1])
-
-        if "{" in raw:
-            try:
-                data = json.loads(raw)
-            except Exception:
-                show_debug_output(raw)
-                data = extract_json_fallback(raw)
-        else:
-            show_debug_output(raw)
-            data = extract_json_fallback(raw)
-
-        progress.progress(70)
-        st.markdown("**Provider:** OpenAI")
-        tokens = len(raw.split())
-        st.markdown(f"**Kosten:** ${(tokens/1000)*cost_rate:.4f}")
-        st.markdown(f"**Dauer:** {duration:.2f}s")
-        progress.progress(90)
-
-        st.markdown("### 🤝 Optimistische Perspektive")
-        st.write(data.get("optimistic", "-"))
-        st.markdown("### ⚠️ Pessimistische Perspektive")
-        st.write(data.get("pessimistic", "-"))
-        st.markdown("### ✅ Empfehlung")
-        st.write(data.get("recommendation", "-"))
-        progress.progress(100)
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
