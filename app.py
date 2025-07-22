@@ -101,8 +101,9 @@ def run_neu():
             st.selectbox("Welcher Agent startet?", ["Agent A", "Agent B"], key="start_agent")
             max_rounds_opt = ["Endlos"] + list(range(1, 101))
             st.selectbox("Maximale Runden", max_rounds_opt, key="max_rounds")
-            # Neue Einstellungen
-            temperature = st.slider("Temperatur (Kreativität)", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="temperature")
+            # Kreativitätsregler für Agent A und B
+            temp_a = st.slider("Temperatur Agent A", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="temperature_a")
+            temp_b = st.slider("Temperatur Agent B", min_value=0.0, max_value=1.0, value=0.2, step=0.05, key="temperature_b")
             st.checkbox("Manuelle Bestätigung zwischen Runden?", key="manual_pause")
             st.text_input("Thema speichern unter", key="save_topic")
             if st.button("Thema speichern"):
@@ -133,8 +134,8 @@ def run_neu():
         api_url = "https://api.openai.com/v1/chat/completions"
         prefix = f"Nutzeridee: {st.session_state.idea_text}\n"
         start_agent = st.session_state.get("start_agent", "Agent A")
-        temp = st.session_state.get("temperature", 0.2)
-        # Einfache einzelne Antwort-Simulation (rundenlogik noch nicht implementiert)
+        # Wähle Temperatur je Agent
+        temp = st.session_state.get("temperature_a") if start_agent == "Agent A" else st.session_state.get("temperature_b")
         if start_agent == "Agent A":
             response = debate_call(api_key, api_url, model_a, prefix + prompt_a, temperature=temp)
         else:
