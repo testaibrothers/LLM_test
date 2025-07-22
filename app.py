@@ -122,7 +122,7 @@ def run_neu():
     st.title("🤖 KI-Debattenplattform – Neu-Version")
 
     # Agentenauswahl
-    llm_list = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-7b", "llama-2-13b"]
+    llm_list = ["gpt-3.5-turbo", "gpt-4", "claude-3", "mistral-saba-24b", "llama-2-13b"]
     col1, col2 = st.columns(2)
     with col1:
         agent_a_model = st.selectbox("Agent A LLM:", llm_list, key="neu_a")
