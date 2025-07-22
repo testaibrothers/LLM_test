@@ -129,17 +129,17 @@ def run_neu():
             input_text = parsed
             st.success("📎 Datei erfolgreich eingelesen.")
 
-    # Modell A Auswahl und Inline-Button
+        # Modell A Auswahl und Inline-Button
     colA1, colA2 = st.columns([3,1])
     model_a = colA1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
-    start_a = colA2.button("A", key="start_a")
+    start_a = colA2.button("🔴", key="start_a")
 
     # Modell B Auswahl und Inline-Button
     colB1, colB2 = st.columns([3,1])
     model_b = colB1.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
-    start_b = colB2.button("B", key="start_b")
+    start_b = colB2.button("🔴", key="start_b")
 
-    st.caption("Drücke 'A' oder 'B', um die Diskussion mit dem jeweiligen Agenten zu starten.")
+    st.caption("Drücke '🔴' neben dem jeweiligen Modell, um mit Agent A bzw. B zu starten.")
 
     # Prompt-Modus für Agent B
     mode = st.radio("Prompt-Modus", ["Getrennter Prompt für B","Gleicher Prompt für beide"], key="modus")
