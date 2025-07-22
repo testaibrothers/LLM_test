@@ -146,7 +146,7 @@ def run_neu():
                     "Groq",
                     st.secrets.get("groq_api_key", ""),
                     "https://api.groq.com/openai/v1/chat/completions",
-                    "mistral-7b",
+                    "mistral-saba-24b",
                     gen_input
                 )
                 st.text_area("Generierter Prompt:", prompt_gen or "Fehler bei der Prompt-Generierung", height=150, key="gen_out")
