@@ -141,10 +141,8 @@ def run_neu():
             keyword = st.text_input("Schlagwort:", key="gen_kw")
             if st.button("Generiere Prompt", key="gen_btn") and keyword:
                 init_sys = (
-                    "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, "
-                    "präziser und anwendungsoptimierter Prompts. Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere "
-                    "LLM-Instanzen zu entwickeln. Wenn bereit, frage nach dem Fachbereich oder der Rolle des zu erstellenden GPT-Prompts."  
-                )
+    "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Erstellung effizienter, präziser Prompts ohne Rückfragen."
+)
                 gen_url = "https://api.groq.com/openai/v1/chat/completions"
                 gen_key = st.secrets.get("groq_api_key", "")
                 # Direktes Aufrufen der Chat-Completion API mit System- und User-Message
@@ -168,6 +166,14 @@ def run_neu():
                     height=150,
                     key="gen_out"
                 )
+                # Übernahmemechanismus für Agenten-Prompts
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if st.button("In Prompt A übernehmen", key="toA"):
+                        st.session_state["pA_neu"] = prompt_gen
+                with col_b:
+                    if st.button("In Prompt B übernehmen", key="toB"):
+                        st.session_state["pB_neu"] = prompt_gen
         # Agent-Prompts
         diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
         if diff:
