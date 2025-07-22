@@ -78,6 +78,7 @@ def run_grundversion():
 
 # === Neu-Version ===
 def run_neu():
+    import numpy as np
     st.title("🤖 KI-Debattenplattform – Neu-Version")
     # Sidebar: Prompt-Generator & Einstellungen
     with st.sidebar:
@@ -100,12 +101,12 @@ def run_neu():
                     st.session_state.prompt_b = ""
             st.text_area("Vorschlag", st.session_state.get("prompt_a", ""), height=100)
         with st.expander("⚙️ Einstellungen", expanded=True):
-            st.selectbox(
+            start_agent = st.selectbox(
                 "Welcher Agent startet?", ["Agent A", "Agent B"], key="start_agent",
                 help="Wählt aus, welcher Agent zuerst mit der Diskussion beginnt."
             )
             max_rounds_opt = ["Endlos"] + list(range(1, 101))
-            st.selectbox(
+            max_rounds = st.selectbox(
                 "Maximale Runden", max_rounds_opt, key="max_rounds",
                 help="Legt die maximale Anzahl hin- und her Nachrichten fest. 'Endlos' bedeutet keine Begrenzung."
             )
@@ -155,24 +156,44 @@ def run_neu():
 
     if st.button("Diskussion starten") and st.session_state.get("idea_text"):
         api_key = st.secrets.get("openai_api_key", "")
-        api_url = "https://api.openai.com/v1/chat/completions"
-        prefix = f"Nutzeridee: {st.session_state.idea_text}\n"
-        start_agent = st.session_state.get("start_agent", "Agent A")
-        # Wähle Temperatur je Agent
-        temp = st.session_state.get("temperature_a") if start_agent == "Agent A" else st.session_state.get("temperature_b")
-        if start_agent == "Agent A":
-            response = debate_call(api_key, api_url, model_a, prefix + prompt_a, temperature=temp)
-        else:
-            response = debate_call(api_key, api_url, model_b, prefix + prompt_b, temperature=temp)
-        st.markdown(f"### 🗣️ Antwort von {start_agent}")
-        st.write(response)
-        # Chat History speichern
-        st.session_state.chat_history.append({"agent": start_agent, "response": response})
+        api_url = "https://api.openai.com/v1"
+        # Consensus loop
+        history = []
+        for i in range(1, 101 if st.session_state.max_rounds != "Endlos" else 10000):
+            # Agent response
+            agent = st.session_state.start_agent
+            model = model_a if agent == "Agent A" else model_b
+            temp = st.session_state.temperature_a if agent == "Agent A" else st.session_state.temperature_b
+            prompt = st.session_state.idea_text + "
+" + (prompt_a if agent == "Agent A" else prompt_b)
+            resp = debate_call(api_key, api_url + "/chat/completions", model, prompt, temperature=temp)
+            history.append((agent, resp))
+            # Switch agent
+            st.session_state.start_agent = "Agent B" if agent == "Agent A" else "Agent A"
+            # Compute embeddings
+            emb_a = requests.post(
+                api_url + "/embeddings",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={"model": "text-embedding-ada-002", "input": history[-1][1]}
+            ).json()["data"][0]["embedding"]
+            emb_b = requests.post(
+                api_url + "/embeddings",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={"model": "text-embedding-ada-002", "input": history[-2][1]}
+            ).json()["data"][0]["embedding"]
+            sim = np.dot(emb_a, emb_b) / (np.linalg.norm(emb_a) * np.linalg.norm(emb_b))
+            if sim >= 0.8:
+                st.success(f"Konsens nach {i} Runden erreicht (Similarity={sim:.2f})")
+                break
+            if st.session_state.manual_pause:
+                st.button("Weiter zur nächsten Runde")
+        # Show last response
+        last_agent, last_resp = history[-1]
+        st.markdown(f"### 🗣️ Antwort von {last_agent}")
+        st.write(last_resp)
+        st.session_state.chat_history.extend([{"agent": a, "response": r} for a, r in history])
 
-    st.markdown("### 🏁 Finaler Konsens")
-    st.text_area("Hier steht der finale Konsens (kosmetisch):", value="", height=200)
-
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
 else:
