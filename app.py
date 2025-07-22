@@ -63,7 +63,6 @@ def debate_call(api_key, api_url, model, prompt, timeout=25):
         st.error(f"Verbindungsfehler: {e}")
         return None
 
-
 # === UI ===
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
