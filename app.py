@@ -205,7 +205,6 @@ def run_neu():
         st.write(response_b or "Keine Antwort von Agent B.")
 
 # Version-Auswahl
-e
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
