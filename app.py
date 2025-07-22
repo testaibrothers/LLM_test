@@ -201,18 +201,24 @@ def run_neu():
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
-    # Diskussion starten & Ausführen
+        # Diskussion starten & Ausführen
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
+        # Kombiniere Prompt und Frage
         combined_a = prompt_a + "
 " + question_neu
         combined_b = prompt_b + "
 " + question_neu
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
-        resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, combined_a)
-        resp_b, _ = debate_call("OpenAI", api_key, api_url, agent_b_model, combined_b)
+        # API-Aufrufe
+        resp_a, _ = debate_call(
+            "OpenAI", api_key, api_url, agent_a_model, combined_a
+        )
+        resp_b, _ = debate_call(
+            "OpenAI", api_key, api_url, agent_b_model, combined_b
+        )
         st.markdown("### 🗣️ Agent A Antwort")
         st.write(resp_a)
         st.markdown("### 🗣️ Agent B Antwort")
