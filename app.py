@@ -142,31 +142,6 @@ def run_neu():
                 help="Lädt das Protokoll der aktuellen Sitzung als JSON-Datei herunter."
             )
 
-    # Kostenschätzung
-    with st.sidebar.expander("💰 Kostenschätzung", expanded=False):
-        st.markdown("**Schätzkosten basierend auf deinen Einstellungen**")
-        # Lese Parameter
-        selected_model = st.session_state.get("neu_a") if st.session_state.get("start_agent") == "Agent A" else st.session_state.get("neu_b")
-        rounds = st.session_state.get("max_rounds")
-        temp_desc = ""  # Temperatur beeinflusst Tokens nicht direkt
-        # Schätz Tokens pro Runde anhand Eingabegrößen
-        prompt_a_len = len(st.session_state.get("prompt_a", ""))
-        prompt_b_len = len(st.session_state.get("prompt_b", ""))
-        idea_len = len(st.session_state.get("idea_text", ""))
-        tokens_per_char = 0.25  # grob 4 Zeichen = 1 Token
-        tokens_per_round = (prompt_a_len + prompt_b_len + idea_len) * tokens_per_char
-        est_rounds = float('inf') if rounds == "Endlos" else rounds
-        # Kostenraten $ pro 1000 Tokens
-        cost_rates = {"gpt-3.5-turbo": 0.002, "gpt-3.5-turbo-16k": 0.003, "gpt-4": 0.03, "gpt-4-32k": 0.06}
-        rate = cost_rates.get(selected_model, 0.002)
-        if est_rounds == float('inf'):
-            st.info("Bei Endlos-Runden ist eine genaue Schätzung nicht möglich.")
-        else:
-            total_tokens = tokens_per_round * est_rounds
-            est_cost = total_tokens / 1000 * rate
-            st.write(f"Geschätzte Kosten: ${est_cost:.4f} (ca. €{est_cost * 0.92:.4f}) für {rounds} Runden auf {selected_model}")
-        st.caption("Basis: 4 Zeichen ≈ 1 Token; Raten laut OpenAI API (Daten können variieren)")
-
     # Main content
     st.text(" ")  # Abstand zum Sidebar
     idea = st.text_area("Deine Idee / Businessplan / Thema:", key="idea_text")
