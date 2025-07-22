@@ -5,7 +5,7 @@ import time
 import json
 import re
 from io import StringIO
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 import docx
 
 # === JSON Parsing ===
