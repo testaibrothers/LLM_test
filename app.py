@@ -118,12 +118,11 @@ def run_neu():
         except:
             st.error("Fehler beim Einlesen der Datei.")
 
-    col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
     model_a = col1.selectbox("Modell für Agent A", ["gpt-3.5-turbo","gpt-4"], key="neu_a")
     model_b = col2.selectbox("Modell für Agent B", ["gpt-3.5-turbo","gpt-4"], key="neu_b")
 
-        mode = st.radio("Prompt-Modus",
-                     ["Getrennter Prompt für B", "Gleicher Prompt für beide"])
+    mode = st.radio("Prompt-Modus", ["Getrennter Prompt für B", "Gleicher Prompt für beide"] )
 
     # Prompt-Eingabe basierend auf Modus
     if mode == "Getrennter Prompt für B":
@@ -140,21 +139,8 @@ def run_neu():
             return
         api_key = st.secrets.get("openai_api_key", "")
         api_url = "https://api.openai.com/v1/chat/completions"
-        # Agent A
         resp_a = debate_call(api_key, api_url, model_a, prompt_a)
-        # Agent B
         resp_b = debate_call(api_key, api_url, model_b, prompt_b)
-        st.markdown("### 🗣️ Antwort Agent A")
-        st.write(resp_a or "Keine Antwort.")
-        st.markdown("### 🗣️ Antwort Agent B")
-        st.write(resp_b or "Keine Antwort.")
-        if not text:
-            st.error("Bitte Input eingeben oder Datei hochladen.")
-            return
-        api_key = st.secrets.get("openai_api_key", "")
-        api_url = "https://api.openai.com/v1/chat/completions"
-        resp_a = debate_call(api_key, api_url, model_a, text)
-        resp_b = debate_call(api_key, api_url, model_b, prompt_b or text)
         st.markdown("### 🗣️ Antwort Agent A")
         st.write(resp_a or "Keine Antwort.")
         st.markdown("### 🗣️ Antwort Agent B")
