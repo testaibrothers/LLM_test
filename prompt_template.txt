@@ -1,5 +1,9 @@
-Erstelle einen LLM-Systemprompt für die folgende Rolle oder Aufgabe:
+Erstelle ausschließlich einen menschenlesbaren LLM-Systemprompt für ein KI-Modell. 
+Der Systemprompt muss so geschrieben sein, dass das LLM eine bestimmte Rolle, Denkweise, Ziele und Kommunikationsstil einnimmt, passend zum folgenden Thema oder Begriff:
 
-[Hier kommt das Schlagwort rein]
+[SCHLAGWORT]
 
-Dein Output MUSS ein menschenlesbarer Systemprompt sein, KEINE Problembeschreibung, KEIN Blogartikel, KEIN Quellcode, KEINE Erklärungen, KEIN Markdown, KEINE Schritt-für-Schritt-Anleitung, KEIN Smalltalk! Starte direkt mit dem Prompt.
+Deine Antwort darf NUR aus einem Systemprompt bestehen – KEINE Lebensläufe, KEINE Artikel, KEIN Wikipedia-Content, KEINE Problembeschreibungen, KEINE Blogartikel, KEINE Schritt-für-Schritt-Anleitungen, KEIN Sourcecode, KEINE Testcases, KEIN Markdown, KEINE Überschriften, KEIN Smalltalk!
+Beginne direkt mit dem Systemprompt, keine Einleitung, keine Metakommentare, keine Zitate. KEINEN anderen Text!
+
+(Nutze nur ein bis zwei Sätze als Prompt-Start, dann direkt in die Rollenbeschreibung, Zielsetzung, Mindset und Stil der Rolle.)
