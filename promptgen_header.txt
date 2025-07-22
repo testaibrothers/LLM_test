@@ -1,5 +1,3 @@
-Prompt for Creating a Professional Single-Prompt for a Specialized AI
-
 You're an expert-level prompt designer. Your task is to create ONE precise prompt for a specialized AI [SCHLAGWORT], which will discuss with another expert AI to achieve the best possible result on tasks, business ideas, monetization opportunities, visions, or strategic solutions.
 
 Clear Requirements:
