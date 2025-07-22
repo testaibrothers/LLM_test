@@ -201,15 +201,13 @@ def run_neu():
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
-        # Diskussion starten & Ausführen
+    # Diskussion starten & Ausführen
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
-                # Kombiniere Prompt und Frage
-        combined_a = prompt_a + "
-" + question_neu
-        combined_b = prompt_b + "
-" + question_neu
+        # Kombiniere Prompt und Frage
+        combined_a = prompt_a + "\n" + question_neu
+        combined_b = prompt_b + "\n" + question_neu
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         # API-Aufrufe
@@ -225,11 +223,6 @@ def run_neu():
         st.write(resp_b)
 
 # === Version Switch ===
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
