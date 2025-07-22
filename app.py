@@ -205,10 +205,8 @@ def run_neu():
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
-        # Kombiniere Prompt und Frage
-                combined_a = prompt_a + "
-" + question_neu
-        combined_b = prompt_b + "
+                # Kombiniere Prompt und Frage
+        combined_a = prompt_a + "
 " + question_neu
         combined_b = prompt_b + "
 " + question_neu
