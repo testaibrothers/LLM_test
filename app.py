@@ -142,8 +142,8 @@ def run_neu():
             if st.button("Generiere Prompt", key="gen_btn") and keyword:
                 init_sys = (
                     "Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, "
-                    "präziser und anwendungsoptimierter Prompts. "
-                    "Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln."
+                    "präziser und anwendungsoptimierter Prompts. Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere "
+                    "LLM-Instanzen zu entwickeln."
                 )
                 generator_url = "https://api.groq.com/openai/v1/chat/completions"
                 generator_key = st.secrets.get("groq_api_key", "")
