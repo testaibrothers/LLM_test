@@ -138,11 +138,11 @@ def run_neu():
 
     # Prompt-Einstellung
     if mode == "Prompt":
-        gen_col, cfg_col = st.columns([2,3])
-        with gen_col:
-            st.markdown("### Promterstellung")
-            keyword = st.text_input("Schlagwort für Prompt-Generator:", key="gen_kw")
-            if st.button("Prompt generieren", key="gen_btn") and keyword:
+        # Prompt Generator als optionales Sidebar-Feature
+        with st.sidebar.expander("Prompt-Generator (optional)", expanded=False):
+            st.markdown("Verwende ein Schlagwort, um einen professionellen Prompt zu generieren:")
+            keyword = st.text_input("Schlagwort:", key="gen_kw")
+            if st.button("Generiere Prompt", key="gen_btn") and keyword:
                 init_sys = """
 Du bist ein professioneller Prompt-Designer auf Expertenniveau, spezialisiert auf die Entwicklung effizienter, präziser und anwendungsoptimierter Prompts für spezialisierte LLM-Modelle. Deine Aufgabe ist es, in einem Gespräch mit mir Prompts für andere LLM-Instanzen zu entwickeln, die jeweils als fachspezifische Assistenten agieren sollen (z. B. als Fitness-Experte, Psychologe, Jurist etc.).
 
@@ -163,13 +163,17 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
                     prompt_gen = resp.json()["choices"][0]["message"]["content"]
                 except:
                     prompt_gen = "Fehler bei der Prompt-Generierung"
-                st.text_area("Generierter Prompt:", prompt_gen, height=200, key="gen_out")
-        with cfg_col:
-            diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
-            if diff:
-                prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt...", key="pA_neu")
-                prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt...", key="pB_neu")
-            else:
+                st.text_area("Generierter Prompt:", prompt_gen, height=150, key="gen_out")
+        # Eingabe der Agent Prompts
+        diff = st.checkbox("Unterschiedliche Prompts für A und B", key="diff_neu")
+        if diff:
+            prompt_a = st.text_area("Prompt für Agent A", placeholder="Je detaillierter der Prompt...", key="pA_neu")
+            prompt_b = st.text_area("Prompt für Agent B", placeholder="Je detaillierter der Prompt...", key="pB_neu")
+        else:
+            shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt...", key="shared_same")
+            prompt_a = shared
+            prompt_b = shared
+    else:
                 shared = st.text_area("Gemeinsamer Prompt (optional)", placeholder="Je detaillierter der Prompt...", key="shared_same")
                 prompt_a = shared
                 prompt_b = shared
