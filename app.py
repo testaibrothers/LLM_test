@@ -105,8 +105,33 @@ def run_neu():
     with st.sidebar.expander("🧠 Prompt-Generator", expanded=False):
         keyword = st.text_input("Schlagwort eingeben:", key="kw_gen")
         if st.button("Prompt generieren", key="gen_btn") and keyword:
-            gen_prompt = f"Du bist ein KI-Agent und behandelst folgendes Thema aus deiner Sicht: {keyword}"
-            st.session_state["last_generated"] = gen_prompt
+            try:
+                with open("promptgen_header.txt", "r", encoding="utf-8") as file:
+                template = file.read().strip()
+                messages = [
+                    {"role": "system", "content": template.replace("[SCHLAGWORT]", keyword)}
+                ]
+                payload = {
+                    "model": "gpt-3.5-turbo",
+                    "messages": messages,
+                    "temperature": 0.2
+                }
+                headers = {
+                    "Authorization": f"Bearer {st.secrets.get('openai_api_key', '')}",
+                    "Content-Type": "application/json"
+                }
+                try:
+                    resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+                    if resp.status_code == 200:
+                        filled_prompt = resp.json()["choices"][0]["message"]["content"].strip()
+                    else:
+                        filled_prompt = f"[Fehler: {resp.status_code}] {resp.text}"
+                except Exception as e:
+                    filled_prompt = f"[Fehler beim API-Aufruf] {e}"
+            except FileNotFoundError:
+                filled_prompt = f"[Promptdatei fehlt]
+Schlagwort: {keyword}"
+            st.session_state["last_generated"] = filled_prompt
         st.text_area("Vorschlag:", value=st.session_state.get("last_generated", ""), height=100)
         cols = st.columns(2)
         with cols[0]:
