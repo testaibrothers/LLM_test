@@ -22,16 +22,21 @@ def adjust_prompt_for_provider(prompt: str, provider: str) -> str:
     if "Groq" in provider:
         return (
             prompt
-            + "\n\nAntworte ausschließlich mit folgendem JSON-Schema:"
-            + " {\"optimistic\":\"...\", \"pessimistic\":\"...\", \"recommendation\":\"...\"}."
-            + " Gib keine Erklärungen, Codeblöcke oder Kommentare aus. Nur das JSON selbst."
+            + "\n\nAntworte bitte ausschließlich mit einem JSON-Objekt wie folgt (ohne Text davor oder danach):"
+            + " {\"optimistic\":\"<kurze optimistische Analyse>\", \"pessimistic\":\"<kurze pessimistische Analyse>\", \"recommendation\":\"<klare Empfehlung>\"}."
+            + " Achte darauf, dass dies reines JSON ist – keine Code-Tags, keine Markdown-Blöcke, keine Erklärungen oder Kommentare."
         )
     return prompt
 
 # === API-Call mit Fallback ===
 def debate_call(selected_provider, api_key, api_url, model, prompt, timeout=25):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = {"model": model, "messages": [{"role": "system", "content": prompt}], "temperature": 0.7}
+    payload = {
+        "model": model,
+        "messages": [{"role": "system", "content": prompt}],
+        "temperature": 0.3,
+        "max_tokens": 300
+    }
     while True:
         try:
             resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
@@ -127,9 +132,13 @@ def run_grundversion():
         if raw.startswith("```") and raw.endswith("```"):
             raw = "\n".join(raw.splitlines()[1:-1])
 
-        try:
-            data = json.loads(raw)
-        except Exception:
+        if "{" in raw:
+            try:
+                data = json.loads(raw)
+            except Exception:
+                show_debug_output(raw)
+                data = extract_json_fallback(raw)
+        else:
             show_debug_output(raw)
             data = extract_json_fallback(raw)
 
