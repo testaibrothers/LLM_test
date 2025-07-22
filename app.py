@@ -20,57 +20,34 @@ def show_debug_output(raw):
     st.warning("Antwort nicht als JSON erkennbar. Roh-Antwort folgt:")
     st.code(raw, language="text")
 
-# === PDF- oder Textinput für Agent A ===
-st.markdown("### 💡 Deine Idee oder Frage für Agent A")
-st.markdown(
-    "⚠️ Hinweis: Agent A beginnt immer die Diskussion. Du kannst dein Thema hier direkt eingeben oder eine Datei hochladen "
-    "(unterstützt: .txt, .pdf, .docx)."
-)
-
-input_text = st.text_area("📝 Thema, Idee oder Businessplan eingeben:", height=200)
-uploaded_file = st.file_uploader("📎 Datei hochladen", type=["pdf", "txt", "docx"])
-
-# Text extrahieren, wenn Datei hochgeladen wurde
-if uploaded_file:
-    if uploaded_file.type == "application/pdf":
-        import fitz  # PyMuPDF
-        doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-        input_text = "
-".join(page.get_text() for page in doc)
-    elif uploaded_file.type == "text/plain":
-        input_text = uploaded_file.read().decode("utf-8")
-    elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        import docx
-        doc = docx.Document(uploaded_file)
-        input_text = "
-".join([p.text for p in doc.paragraphs])
-
-# === API Call ===
-def debate_call(api_key, api_url, model, prompt, timeout=25):
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = {
-        "model": model,
-        "messages": [{"role": "system", "content": prompt}],
-        "temperature": 0.2,
-        "max_tokens": 200
-    }
-    try:
-        resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
-        if resp.status_code == 200:
-            return resp.json()["choices"][0]["message"]["content"]
-        else:
-            st.error(f"API-Fehler {resp.status_code}: {resp.text}")
-            return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Verbindungsfehler: {e}")
-        return None
-
-
-        # === UI ===
+# === Grundversion UI ===
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
     st.subheader("Single-Call Debatte mit OpenAI")
 
+    # Input für Agent A
+    st.markdown("### 💡 Deine Idee oder Frage für Agent A")
+    st.markdown("⚠️ Hinweis: Agent A beginnt immer die Diskussion.")
+    input_text = st.text_area("📝 Thema, Idee oder Businessplan eingeben:", height=200)
+    uploaded_file = st.file_uploader("📎 Datei hochladen (pdf, txt, docx)", type=["pdf", "txt", "docx"])
+
+    # Text aus Datei extrahieren, falls hochgeladen
+    if uploaded_file:
+        if uploaded_file.type == "application/pdf":
+            import fitz  # PyMuPDF
+            doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+            input_text = "\n".join(page.get_text() for page in doc)
+        elif uploaded_file.type == "text/plain":
+            input_text = uploaded_file.read().decode("utf-8")
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            import docx
+            doc = docx.Document(uploaded_file)
+            input_text = "\n".join([p.text for p in doc.paragraphs])
+
+    # Hinweis über dem Auswahlmenü
+    st.markdown("⚠️ Agent A startet stets die Diskussion, unabhängig von der Auswahl unten.")
+
+    # Use Case Auswahl
     use_case = st.selectbox(
         "Use Case auswählen:",
         ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
@@ -83,22 +60,17 @@ def run_grundversion():
         st.info("Debatte läuft...")
         progress.progress(10)
 
+        # Prompt generieren
         if use_case == "Allgemeine Diskussion":
             prompt = (
-                f"Thema: '{input_text}'
-"
-                "Agent A (optimistisch)
-Agent B (pessimistisch)
-"
+                f"Thema: '{input_text}'\n"
+                "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
                 "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
         else:
             prompt = (
-                f"Thema: '{question}'
-"
-                "Agent A analysiert Chancen.
-Agent B analysiert Risiken.
-"
+                f"Thema: '{input_text}'\n"
+                "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
                 "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
 
@@ -108,6 +80,7 @@ Agent B analysiert Risiken.
         model = "gpt-3.5-turbo"
         progress.progress(50)
 
+        # API-Aufruf
         start_time = time.time()
         content = debate_call(api_key, api_url, model, prompt)
         duration = time.time() - start_time
@@ -122,6 +95,7 @@ Agent B analysiert Risiken.
             data = extract_json_fallback(content)
             show_debug_output(content)
 
+        # Ergebnisse anzeigen
         st.markdown(f"**Dauer:** {duration:.2f}s")
         st.markdown("### 🤝 Optimistische Perspektive")
         st.write(data.get("optimistic", "-"))
@@ -131,7 +105,7 @@ Agent B analysiert Risiken.
         st.write(data.get("recommendation", "-"))
         progress.progress(100)
 
-# Version-Switch
+# === Version-Switch ===
 version = st.selectbox("Version:", ["Grundversion"], index=0)
 if version == "Grundversion":
-    run_grundversion()  # gekürzt für Übersichtlichkeit
+    run_grundversion()
