@@ -184,7 +184,7 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         prompt_a = f"Du bist Agent A und agierst {char_a.lower()}."
         prompt_b = f"Du bist Agent B und agierst {char_b.lower()}."
 
-        # Diskussion starten & Ausführen
+            # Diskussion starten & Ausführen
     question_neu = st.text_area("Deine Frage:", key="q_neu")
     if st.button("Diskussion starten", key="start_neu") and question_neu:
         st.markdown(f"**Modelle:** A={agent_a_model}, B={agent_b_model}")
