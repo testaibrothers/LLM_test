@@ -129,7 +129,6 @@ def run_neu():
 
     if st.button("Diskussion starten") and idea:
         api_key = st.secrets.get("openai_api_key", "")
-        api_url = "https://api.openai.com/v1/chat/completions"
         prefix = f"Nutzeridee: {idea}\n"
         if start_agent == "Agent A":
             response = debate_call(api_key, api_url, model_a, prefix + prompt_a)
