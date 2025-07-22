@@ -144,6 +144,9 @@ def run_neu():
     # Main content
     st.text(" ")  # Abstand zum Sidebar
     idea = st.text_area("Deine Idee / Businessplan / Thema:", key="idea_text")
+    # Diskussion starten Button zentral unter dem Ideenfeld
+    start = st.button("Diskussion starten")
+
     col1, col2 = st.columns(2)
     with col1:
         model_a = st.selectbox("Modell Agent A", ["gpt-3.5-turbo", "gpt-4"], key="neu_a")
@@ -152,10 +155,11 @@ def run_neu():
         model_b = st.selectbox("Modell Agent B", ["gpt-3.5-turbo", "gpt-4"], key="neu_b")
         prompt_b = st.text_area("Prompt Agent B", st.session_state.get("prompt_b", ""), height=120)
 
-    if st.button("Diskussion starten") and st.session_state.get("idea_text"):
+    if start and st.session_state.get("idea_text"):
         api_key = st.secrets.get("openai_api_key", "")
         api_url = "https://api.openai.com/v1/chat/completions"
-        prefix = f"Nutzeridee: {st.session_state.idea_text}\n"
+        prefix = f"Nutzeridee: {st.session_state.idea_text}
+"
         start_agent = st.session_state.get("start_agent", "Agent A")
         # Wähle Temperatur je Agent
         temp = st.session_state.get("temperature_a") if start_agent == "Agent A" else st.session_state.get("temperature_b")
@@ -172,6 +176,10 @@ def run_neu():
     st.text_area("Hier steht der finale Konsens (kosmetisch):", value="", height=200)
 
 version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
+if version == "Grundversion":
+    run_grundversion()
+else:
+    run_neu()("Version:", ["Grundversion", "Neu-Version"], index=0)
 if version == "Grundversion":
     run_grundversion()
 else:
