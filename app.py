@@ -1,16 +1,50 @@
+# LLM-Debatte – Einfache Komplettversion in einer Datei (nur OpenAI)
 import streamlit as st
+import requests
 import time
 import json
+import re
 
-from api import debate_call
-from prompt_utils import adjust_prompt_for_provider
-from parsing import extract_json_fallback, show_debug_output
+# === JSON Parsing ===
+def extract_json_fallback(text):
+    optimistic = re.search(r'optimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
+    pessimistic = re.search(r'pessimistic\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
+    recommendation = re.search(r'recommendation\W+(.*?)\n', text, re.IGNORECASE | re.DOTALL)
+    return {
+        "optimistic": optimistic.group(1).strip() if optimistic else "-",
+        "pessimistic": pessimistic.group(1).strip() if pessimistic else "-",
+        "recommendation": recommendation.group(1).strip() if recommendation else "-"
+    }
 
+def show_debug_output(raw):
+    st.warning("Antwort nicht als JSON erkennbar. Roh-Antwort folgt:")
+    st.code(raw, language="text")
+
+# === API Call ===
+def debate_call(api_key, api_url, model, prompt, timeout=25):
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "model": model,
+        "messages": [{"role": "system", "content": prompt}],
+        "temperature": 0.2,
+        "max_tokens": 200
+    }
+    try:
+        resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
+        if resp.status_code == 200:
+            return resp.json()["choices"][0]["message"]["content"]
+        else:
+            st.error(f"API-Fehler {resp.status_code}: {resp.text}")
+            return None
+    except requests.exceptions.RequestException as e:
+        st.error(f"Verbindungsfehler: {e}")
+        return None
+
+# === UI ===
 def run_grundversion():
     st.title("🤖 KI-Debattenplattform – Grundversion")
-    st.subheader("Single-Call Debatte mit Fallback & Live-Statistiken")
+    st.subheader("Single-Call Debatte mit OpenAI")
 
-    provider = "OpenAI (gpt-3.5-turbo)"
     use_case = st.selectbox(
         "Use Case auswählen:",
         ["Allgemeine Diskussion", "SaaS Validator", "SWOT Analyse", "Pitch-Kritik", "WLT Entscheidung"],
@@ -25,21 +59,19 @@ def run_grundversion():
         progress.progress(10)
 
         if use_case == "Allgemeine Diskussion":
-            base_prompt = (
+            prompt = (
                 f"Thema: '{question}'\n"
                 "Agent A (optimistisch)\nAgent B (pessimistisch)\n"
                 "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
         else:
-            base_prompt = (
+            prompt = (
                 f"Thema: '{question}'\n"
                 "Agent A analysiert Chancen.\nAgent B analysiert Risiken.\n"
                 "Bitte liefere als Ergebnis ein JSON mit den Feldern: optimistic, pessimistic, recommendation."
             )
 
-        prompt = base_prompt  # Nur OpenAI, daher keine Provider-Abzweigung mehr
         progress.progress(30)
-
         api_url = "https://api.openai.com/v1/chat/completions"
         api_key = st.secrets.get("openai_api_key", "")
         model = "gpt-3.5-turbo"
@@ -47,7 +79,7 @@ def run_grundversion():
         progress.progress(50)
 
         start_time = time.time()
-        content, used = debate_call(provider, api_key, api_url, model, prompt)
+        content = debate_call(api_key, api_url, model, prompt)
         duration = time.time() - start_time
         if not content:
             st.error("Keine Antwort erhalten.")
@@ -69,7 +101,7 @@ def run_grundversion():
             data = extract_json_fallback(raw)
 
         progress.progress(70)
-        st.markdown(f"**Provider:** {used}")
+        st.markdown("**Provider:** OpenAI")
         tokens = len(raw.split())
         st.markdown(f"**Kosten:** ${(tokens/1000)*cost_rate:.4f}")
         st.markdown(f"**Dauer:** {duration:.2f}s")
