@@ -191,7 +191,7 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         st.markdown(f"**Prompt A:** {prompt_a or '<leer>'}")
         st.markdown(f"**Prompt B:** {prompt_b or '<leer>'}")
         # Agentenaufrufe
-        combined_a = f"{prompt_a}
+                combined_a = f"{prompt_a}
 {question_neu}"
         combined_b = f"{prompt_b}
 {question_neu}"
@@ -199,6 +199,7 @@ Wenn du bereit bist, frage zuerst nach dem Fachbereich oder der gewünschten Rol
         api_key = st.secrets.get("openai_api_key", "")
         resp_a, _ = debate_call("OpenAI", api_key, api_url, agent_a_model, combined_a)
         resp_b, _ = debate_call("OpenAI", api_key, api_url, agent_b_model, combined_b)
+("OpenAI", api_key, api_url, agent_b_model, combined_b)
         st.markdown("### 🗣️ Agent A Antwort")
         st.write(resp_a)
         st.markdown("### 🗣️ Agent B Antwort")
