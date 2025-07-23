@@ -157,17 +157,36 @@ def run_neu():
     if st.button("Diskussion starten") and st.session_state.get("idea_text"):
         api_key = st.secrets.get("openai_api_key", "")
         api_url = "https://api.openai.com/v1"
-                                # Consensus loop
+                                        # Consensus loop
         history = []
         for i in range(1, 101 if st.session_state.max_rounds != "Endlos" else 10000):
-            # Agent response
             agent = st.session_state.start_agent
             model = model_a if agent == "Agent A" else model_b
             temp = st.session_state.temperature_a if agent == "Agent A" else st.session_state.temperature_b
-            # Zusammenführung der Idee und des jeweiligen Prompts
+            # Build prompt
             prompt_text = st.session_state.idea_text + "
 " + (prompt_a if agent == "Agent A" else prompt_b)
-            # Call Chat Completion
+            # Get response
             resp = debate_call(api_key, api_url + "/chat/completions", model, prompt_text, temperature=temp)
             # Save history
-            history.append((agent, resp))((agent, resp))
+            history.append((agent, resp))
+            # Switch agent
+            st.session_state.start_agent = "Agent B" if agent == "Agent A" else "Agent A"
+            # Compute embeddings for last two responses
+            if len(history) >= 2:
+                last_A = history[-2][1]
+                last_B = history[-1][1]
+                emb_A = requests.post(
+                    api_url + "/embeddings",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={"model": "text-embedding-ada-002", "input": last_A}
+                ).json()["data"][0]["embedding"]
+                emb_B = requests.post(
+                    api_url + "/embeddings",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={"model": "text-embedding-ada-002", "input": last_B}
+                ).json()["data"][0]["embedding"]
+                sim = np.dot(emb_A, emb_B) / (np.linalg.norm(emb_A) * np.linalg.norm(emb_B))
+                if sim >= 0.8:
+                    st.success(f"Konsens nach {i} Runden erreicht (Similarity={sim:.2f})")
+                    break((agent, resp))
