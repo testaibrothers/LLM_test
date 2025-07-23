@@ -157,7 +157,7 @@ def run_neu():
     if st.button("Diskussion starten") and st.session_state.get("idea_text"):
         api_key = st.secrets.get("openai_api_key", "")
         api_url = "https://api.openai.com/v1"
-                # Consensus loop
+                        # Consensus loop
         history = []
         for i in range(1, 101 if st.session_state.max_rounds != "Endlos" else 10000):
             # Agent response
@@ -165,60 +165,7 @@ def run_neu():
             model = model_a if agent == "Agent A" else model_b
             temp = st.session_state.temperature_a if agent == "Agent A" else st.session_state.temperature_b
             # Zusammenführung der Idee und des jeweiligen Prompts
-                        # Zusammenführung der Idee und des jeweiligen Prompts
-                        # Zusammenführung der Idee und des jeweiligen Prompts
-            prompt = st.session_state.idea_text + "
+            prompt_text = st.session_state.idea_text + "
 " + (prompt_a if agent == "Agent A" else prompt_b)
-            resp = debate_call(api_key, api_url + "/chat/completions", model, prompt, temperature=temp)(api_key, api_url + "/chat/completions", model, prompt, temperature=temp)
-            resp = debate_call(api_key, api_url + "/chat/completions", model, prompt, temperature=temp)
+            resp = debate_call(api_key, api_url + "/chat/completions", model, prompt_text, temperature=temp)
             history.append((agent, resp))
-            # Switch agent
-            st.session_state.start_agent = "Agent B" if agent == "Agent A" else "Agent A"
-            # Compute embeddings
-            emb_a = requests.post(
-                api_url + "/embeddings",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={"model": "text-embedding-ada-002", "input": history[-2][1] if agent == "Agent B" else history[-1][1]}
-            ).json()["data"][0]["embedding"]
-            emb_b = requests.post(
-                api_url + "/embeddings",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={"model": "text-embedding-ada-002", "input": history[-1][1] if agent == "Agent B" else history[-2][1]}
-            ).json()["data"][0]["embedding"]
-            sim = np.dot(emb_a, emb_b) / (np.linalg.norm(emb_a) * np.linalg.norm(emb_b))
-            if sim >= 0.8:
-                st.success(f"Konsens nach {i} Runden erreicht (Similarity={sim:.2f})")
-                break
-            if st.session_state.manual_pause:
-                st.button("Weiter zur nächsten Runde")
-        # Show last response
-        last_agent, last_resp = history[-1]
-        st.markdown(f"### 🗣️ Antwort von {last_agent}")
-        st.write(last_resp)
-        st.session_state.chat_history.extend([{"agent": a, "response": r} for a, r in history])
-        # Anzeige der Uneinigkeit (untersten 20% semantische Ähnlichkeit)
-        if len(history) >= 2:
-            last_A = history[-2][1]
-            last_B = history[-1][1]
-            # Aufteilung in Sätze
-            sents_A = re.split(r'(?<=[\.!?]) +', last_A)
-            sents_B = re.split(r'(?<=[\.!?]) +', last_B)
-            # Berechnung von Satz-Embeddings
-            emb_A = [requests.post(api_url + "/embeddings", headers={"Authorization": f"Bearer {api_key}"}, json={"model": "text-embedding-ada-002", "input": s}).json()["data"][0]["embedding"] for s in sents_A]
-            emb_B = [requests.post(api_url + "/embeddings", headers={"Authorization": f"Bearer {api_key}"}, json={"model": "text-embedding-ada-002", "input": s}).json()["data"][0]["embedding"] for s in sents_B]
-            # Ähnlichkeitsmatrix
-            sims = [(i, j, np.dot(ea, eb)/(np.linalg.norm(ea)*np.linalg.norm(eb))) for i, ea in enumerate(emb_A) for j, eb in enumerate(emb_B)]
-            # sortiere aufsteigend und nimm unterste 20%
-            sims_sorted = sorted(sims, key=lambda x: x[2])
-            cutoff = max(1, int(len(sims_sorted)*0.2))
-            low = sims_sorted[:cutoff]
-            with st.expander("Uneinigkeit anzeigen (unterste 20%)"):
-                for i, j, sim in low:
-                    st.markdown(f"- A (Satz {i+1}): {sents_A[i]}
-  B (Satz {j+1}): {sents_B[j]}  _(sim={sim:.2f})_")
-
-version = st.selectbox("Version:", ["Grundversion", "Neu-Version"], index=0)
-if version == "Grundversion":
-    run_grundversion()
-else:
-    run_neu()
