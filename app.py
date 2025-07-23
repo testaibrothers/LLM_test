@@ -157,7 +157,7 @@ def run_neu():
     if st.button("Diskussion starten") and st.session_state.get("idea_text"):
         api_key = st.secrets.get("openai_api_key", "")
         api_url = "https://api.openai.com/v1"
-                        # Consensus loop
+                                # Consensus loop
         history = []
         for i in range(1, 101 if st.session_state.max_rounds != "Endlos" else 10000):
             # Agent response
@@ -165,10 +165,9 @@ def run_neu():
             model = model_a if agent == "Agent A" else model_b
             temp = st.session_state.temperature_a if agent == "Agent A" else st.session_state.temperature_b
             # Zusammenführung der Idee und des jeweiligen Prompts
-                        # Zusammenführung der Idee und des jeweiligen Prompts
-                        # Zusammenführung der Idee und des jeweiligen Prompts
             prompt_text = st.session_state.idea_text + "
 " + (prompt_a if agent == "Agent A" else prompt_b)
+            # Call Chat Completion
             resp = debate_call(api_key, api_url + "/chat/completions", model, prompt_text, temperature=temp)
-            resp = debate_call(api_key, api_url + "/chat/completions", model, prompt_text, temperature=temp)(api_key, api_url + "/chat/completions", model, prompt_text, temperature=temp)
-            history.append((agent, resp))
+            # Save history
+            history.append((agent, resp))((agent, resp))
