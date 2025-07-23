@@ -165,11 +165,8 @@ def run_neu():
             model = model_a if agent == "Agent A" else model_b
             temp = st.session_state.temperature_a if agent == "Agent A" else st.session_state.temperature_b
             # Zusammenführung der Idee und des jeweiligen Prompts
-                        # Zusammenführung der Idee und des jeweiligen Prompts
-                        # Zusammenführung der Idee und des jeweiligen Prompts
             prompt = st.session_state.idea_text + "
 " + (prompt_a if agent == "Agent A" else prompt_b)
-            resp = debate_call(api_key, api_url + "/chat/completions", model, prompt, temperature=temp)(api_key, api_url + "/chat/completions", model, prompt, temperature=temp)
             resp = debate_call(api_key, api_url + "/chat/completions", model, prompt, temperature=temp)
             history.append((agent, resp))
             # Switch agent
