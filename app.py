@@ -200,7 +200,7 @@ def run_neu():
         if len(history) >= 2:
             last_A = history[-2][1]
             last_B = history[-1][1]
-            # Aufteilung in Sätze
+            # Aufteilung in Sätze 
             sents_A = re.split(r'(?<=[\.!?]) +', last_A)
             sents_B = re.split(r'(?<=[\.!?]) +', last_B)
             # Berechnung von Satz-Embeddings
