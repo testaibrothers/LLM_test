@@ -154,6 +154,11 @@ def run_neu():
                     break
                 if st.session_state.manual_pause:
                     st.button("Weiter")
+                # Finale Konsens-Zeile (Textfeld)
+        st.markdown("### 🏁 Finaler Konsens")
+        consensus_text = history[-1][1] if history else ""
+        st.text_area("Konsens:", value=consensus_text, height=150)
+
         # show responses
         for a,r in history:
             st.markdown(f"### 🗣️ Antwort von {a}")
